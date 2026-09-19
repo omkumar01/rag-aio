@@ -1,0 +1,15 @@
+[project]
+name = "rag-eval"
+version = "0.1.0"
+description = "rag-aio first-class evaluation framework"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["rag-core", "numpy>=1.26"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rag_eval"]
