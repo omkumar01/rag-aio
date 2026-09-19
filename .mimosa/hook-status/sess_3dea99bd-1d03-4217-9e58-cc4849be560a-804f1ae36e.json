@@ -1,14 +1,14 @@
 {
   "schemaVersion": "mimosa-hook-status/v1",
-  "recordedAt": "2026-09-19T20:05:15.539Z",
+  "recordedAt": "2026-09-19T21:03:22.313Z",
   "sessionId": "sess_3dea99bd-1d03-4217-9e58-cc4849be560a",
   "event": "PostToolUse",
   "toolName": "Edit",
-  "file": "DECISIONS.md",
+  "file": "packages/rag-generation/tests/test_secrets.py",
   "outcome": "clear",
   "coverage": "complete",
   "findingCount": 0,
-  "durationMs": 3,
+  "durationMs": 9,
   "hostState": "hook_complete",
   "reportHint": ".mimosa/reports/"
 }

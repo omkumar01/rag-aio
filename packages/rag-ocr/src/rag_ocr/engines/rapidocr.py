@@ -55,10 +55,10 @@ class RapidOCREngine:
         def _run() -> list[RawLine]:
             result = self._client.ocr(image_bytes)
             lines: list[RawLine] = []
-            # Result is a list of pages; each page is a list of [box, text, score].
-            pages = result if isinstance(result, list) else [result]
+            # Result is a list/tuple of pages; each page is a list of [box, text, score].
+            pages = list(result) if isinstance(result, (list, tuple)) else [result]
             for page in pages:
-                if not isinstance(page, list):
+                if not isinstance(page, (list, tuple)):
                     continue
                 for item in page:
                     if not (isinstance(item, (list, tuple)) and len(item) >= 3):
