@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TypeVar
-
 from pydantic import ValidationError
 
 from .base import RagBaseModel
-
-M = TypeVar("M", bound=RagBaseModel)
 
 
 def to_json(model: RagBaseModel) -> str:
@@ -16,7 +12,7 @@ def to_json(model: RagBaseModel) -> str:
     return model.model_dump_json()
 
 
-def from_json(data: str, model_type: type[M]) -> M:
+def from_json[M: RagBaseModel](data: str, model_type: type[M]) -> M:
     """Deserialize and validate JSON into ``model_type``.
 
     Raises ``pydantic.ValidationError`` on schema mismatch.

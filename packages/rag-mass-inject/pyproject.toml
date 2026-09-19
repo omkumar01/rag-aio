@@ -3,7 +3,7 @@ name = "rag-mass-inject"
 version = "0.1.0"
 description = "rag-aio high-throughput bulk ingestion with checkpoints and backpressure"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
     "rag-core",

@@ -3,7 +3,7 @@ name = "rag-embedder"
 version = "0.1.0"
 description = "rag-aio chunking, tokenization, embedding and indexing orchestration"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
     "rag-core",

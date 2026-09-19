@@ -3,7 +3,7 @@ name = "rag-query"
 version = "0.1.0"
 description = "rag-aio query intelligence and parallel retrieval execution"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = ["rag-core", "rag-retrieval"]
 

@@ -18,7 +18,8 @@ tracks them plus open questions.
 
 ## Conventional decisions (no ADR required)
 
-- Python `>=3.11`; CI matrix 3.11–3.13; local development on 3.13.
+- Python `>=3.12` (numpy stubs use 3.12+ syntax under mypy); CI matrix 3.12–3.13; local
+  development on 3.13.
 - Pydantic v2, FastAPI, httpx, Typer, pytest/pytest-asyncio, ruff, mypy strict.
 - In-house evaluation metrics (no ranx) to keep `rag-eval` dependency-light.
 - LangChain/LlamaIndex not dependencies; optional adapters only if a concrete benefit

@@ -3,7 +3,7 @@ name = "rag-aio-workspace"
 version = "0.1.0"
 description = "rag-aio: asynchronous, modular, high-performance RAG platform (uv workspace root)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
     "rag-core",
@@ -65,7 +65,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 src = ["packages"]
 
 [tool.ruff.lint]
@@ -89,7 +89,7 @@ ignore = [
 "scripts/**" = ["T201"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 warn_unreachable = true
 show_error_codes = true

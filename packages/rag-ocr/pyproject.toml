@@ -3,7 +3,7 @@ name = "rag-ocr"
 version = "0.1.0"
 description = "rag-aio hybrid mechanical + semantic OCR with provenance-preserving regions"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = ["rag-core", "numpy>=1.26", "pillow>=10.0", "httpx>=0.27"]
 
