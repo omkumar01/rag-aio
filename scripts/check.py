@@ -98,7 +98,8 @@ def build_checks(args: argparse.Namespace) -> list[Check]:
         checks.append(Check("ruff lint", _uv_run_args(["ruff", "check", "."])))
 
     if not args.fast and not args.skip_types:
-        checks.append(Check("mypy (strict)", _uv_run_args(["mypy", "packages"])))
+        src_dirs = [str(p) for p in sorted(ROOT.glob("packages/*/src"))]
+        checks.append(Check("mypy (strict)", _uv_run_args(["mypy", *src_dirs])))
 
     # Tests
     pytest_argv = ["pytest"]

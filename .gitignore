@@ -27,3 +27,7 @@ data/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local agent tooling state
+.mimosa/
+.zcode/
