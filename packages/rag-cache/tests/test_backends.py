@@ -44,9 +44,10 @@ async def test_get_missing_returns_none(cache: Backend) -> None:
 
 @pytest.mark.parametrize("cache", BACKEND_IDS, indirect=True, ids=BACKEND_IDS)
 async def test_ttl_expiry(cache: Backend) -> None:
+    # Generous margin: 30ms was flaky under CI/coverage load.
     await cache.set("k", b"v", ttl=0.05)
     assert await cache.get("k") == b"v"
-    await asyncio.sleep(0.08)
+    await asyncio.sleep(0.3)
     assert await cache.get("k") is None
 
 

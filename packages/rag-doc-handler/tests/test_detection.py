@@ -68,4 +68,9 @@ def test_guess_mime_falls_back_to_extension() -> None:
 
 
 def test_guess_mime_unknown() -> None:
-    assert guess_mime("weird.xyz") is None
+    # The system MIME database differs per platform (Linux's shared-mime-info
+    # knows .xyz → chemical/x-xyz), so probe candidates and assert that at
+    # least one genuinely unknown extension yields None on this platform.
+    candidates = ["weird.zzzunknown", "weird.q1w2e3", "weird.xyz"]
+    unknown = [c for c in candidates if guess_mime(c) is None]
+    assert unknown, f"no unknown-mime candidate in {candidates} (all guessed by the OS DB)"
