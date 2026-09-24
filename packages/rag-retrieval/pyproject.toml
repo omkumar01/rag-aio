@@ -1,11 +1,11 @@
 [project]
-name = "rag-retrieval"
+name = "rag-aio-retrieval"
 version = "0.1.0"
 description = "rag-aio retrieval engine: dense, sparse, hybrid, fusion, explainability"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core", "rag-db-handler", "numpy>=1.26", "bm25s>=0.2"]
+dependencies = ["rag-aio-core", "rag-aio-db-handler", "numpy>=1.26", "bm25s>=0.2"]
 
 [project.optional-dependencies]
 faiss = ["faiss-cpu>=1.8"]

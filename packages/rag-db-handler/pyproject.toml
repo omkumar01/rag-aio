@@ -1,12 +1,12 @@
 [project]
-name = "rag-db-handler"
+name = "rag-aio-db-handler"
 version = "0.1.0"
 description = "rag-aio unified persistence: SQL, document, KV, vector, sparse, cache stores"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "rag-core",
+    "rag-aio-core",
     "qdrant-client>=1.10",
     "sqlalchemy>=2.0",
     "aiosqlite>=0.20",

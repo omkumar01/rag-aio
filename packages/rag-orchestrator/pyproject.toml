@@ -1,25 +1,25 @@
 [project]
-name = "rag-orchestrator"
+name = "rag-aio-orchestrator"
 version = "0.1.0"
 description = "rag-aio strategy and workflow-management orchestration layer"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "rag-core",
+    "rag-aio-core",
     "pydantic>=2.7",
     "pyyaml>=6.0",
-    "rag-doc-handler",
-    "rag-embedder",
-    "rag-db-handler",
-    "rag-retrieval",
-    "rag-rerank",
-    "rag-query",
-    "rag-context",
-    "rag-generation",
-    "rag-llm-provider",
-    "rag-cache",
-    "rag-observe",
+    "rag-aio-doc-handler",
+    "rag-aio-embedder",
+    "rag-aio-db-handler",
+    "rag-aio-retrieval",
+    "rag-aio-rerank",
+    "rag-aio-query",
+    "rag-aio-context",
+    "rag-aio-generation",
+    "rag-aio-llm-provider",
+    "rag-aio-cache",
+    "rag-aio-observe",
 ]
 
 [project.optional-dependencies]

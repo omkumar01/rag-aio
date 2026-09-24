@@ -1,11 +1,11 @@
 [project]
-name = "rag-llm-provider"
+name = "rag-aio-llm-provider"
 version = "0.1.0"
 description = "rag-aio provider and model management control layer"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core"]
+dependencies = ["rag-aio-core"]
 
 [build-system]
 requires = ["hatchling"]

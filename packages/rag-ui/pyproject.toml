@@ -1,5 +1,5 @@
 [project]
-name = "rag-ui"
+name = "rag-aio-ui"
 version = "0.1.0"
 description = "rag-aio Streamlit management and experimentation console"
 readme = "README.md"

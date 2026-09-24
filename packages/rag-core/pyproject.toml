@@ -1,5 +1,5 @@
 [project]
-name = "rag-core"
+name = "rag-aio-core"
 version = "0.1.0"
 description = "rag-aio canonical domain models and Protocol contracts"
 readme = "README.md"

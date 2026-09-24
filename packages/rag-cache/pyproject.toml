@@ -1,11 +1,11 @@
 [project]
-name = "rag-cache"
+name = "rag-aio-cache"
 version = "0.1.0"
 description = "rag-aio multi-level caching: memory, disk, sqlite backends"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core"]
+dependencies = ["rag-aio-core"]
 
 [project.optional-dependencies]
 redis = ["redis>=5.0"]

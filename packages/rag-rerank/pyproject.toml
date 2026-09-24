@@ -1,11 +1,11 @@
 [project]
-name = "rag-rerank"
+name = "rag-aio-rerank"
 version = "0.1.0"
 description = "rag-aio second-stage relevance optimization"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core", "httpx>=0.27"]
+dependencies = ["rag-aio-core", "httpx>=0.27"]
 
 [project.optional-dependencies]
 sentence-transformers = ["sentence-transformers>=3.0"]

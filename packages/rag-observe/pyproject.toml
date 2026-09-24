@@ -1,11 +1,11 @@
 [project]
-name = "rag-observe"
+name = "rag-aio-observe"
 version = "0.1.0"
 description = "rag-aio observability: OpenTelemetry spans/metrics, redacted logging"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core", "opentelemetry-api>=1.25"]
+dependencies = ["rag-aio-core", "opentelemetry-api>=1.25"]
 
 [build-system]
 requires = ["hatchling"]

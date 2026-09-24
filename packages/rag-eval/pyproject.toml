@@ -1,11 +1,11 @@
 [project]
-name = "rag-eval"
+name = "rag-aio-eval"
 version = "0.1.0"
 description = "rag-aio first-class evaluation framework"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core", "numpy>=1.26"]
+dependencies = ["rag-aio-core", "numpy>=1.26"]
 
 [build-system]
 requires = ["hatchling"]

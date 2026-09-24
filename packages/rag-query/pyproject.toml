@@ -1,11 +1,11 @@
 [project]
-name = "rag-query"
+name = "rag-aio-query"
 version = "0.1.0"
 description = "rag-aio query intelligence and parallel retrieval execution"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-dependencies = ["rag-core", "rag-retrieval"]
+dependencies = ["rag-aio-core", "rag-aio-retrieval"]
 
 [build-system]
 requires = ["hatchling"]

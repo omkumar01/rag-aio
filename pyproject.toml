@@ -6,23 +6,23 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "rag-core",
-    "rag-observe",
-    "rag-cache",
-    "rag-db-handler",
-    "rag-doc-handler",
-    "rag-ocr",
-    "rag-embedder",
-    "rag-retrieval",
-    "rag-rerank",
-    "rag-query",
-    "rag-context",
-    "rag-llm-provider",
-    "rag-generation",
-    "rag-orchestrator",
-    "rag-mass-inject",
-    "rag-eval",
-    "rag-ui",
+    "rag-aio-core",
+    "rag-aio-observe",
+    "rag-aio-cache",
+    "rag-aio-db-handler",
+    "rag-aio-doc-handler",
+    "rag-aio-ocr",
+    "rag-aio-embedder",
+    "rag-aio-retrieval",
+    "rag-aio-rerank",
+    "rag-aio-query",
+    "rag-aio-context",
+    "rag-aio-llm-provider",
+    "rag-aio-generation",
+    "rag-aio-orchestrator",
+    "rag-aio-mass-inject",
+    "rag-aio-eval",
+    "rag-aio-ui",
     "rag-aio",
 ]
 
@@ -33,23 +33,23 @@ package = false
 members = ["packages/*"]
 
 [tool.uv.sources]
-rag-core = { workspace = true }
-rag-observe = { workspace = true }
-rag-cache = { workspace = true }
-rag-db-handler = { workspace = true }
-rag-doc-handler = { workspace = true }
-rag-ocr = { workspace = true }
-rag-embedder = { workspace = true }
-rag-retrieval = { workspace = true }
-rag-rerank = { workspace = true }
-rag-query = { workspace = true }
-rag-context = { workspace = true }
-rag-llm-provider = { workspace = true }
-rag-generation = { workspace = true }
-rag-orchestrator = { workspace = true }
-rag-mass-inject = { workspace = true }
-rag-eval = { workspace = true }
-rag-ui = { workspace = true }
+rag-aio-core = { workspace = true }
+rag-aio-observe = { workspace = true }
+rag-aio-cache = { workspace = true }
+rag-aio-db-handler = { workspace = true }
+rag-aio-doc-handler = { workspace = true }
+rag-aio-ocr = { workspace = true }
+rag-aio-embedder = { workspace = true }
+rag-aio-retrieval = { workspace = true }
+rag-aio-rerank = { workspace = true }
+rag-aio-query = { workspace = true }
+rag-aio-context = { workspace = true }
+rag-aio-llm-provider = { workspace = true }
+rag-aio-generation = { workspace = true }
+rag-aio-orchestrator = { workspace = true }
+rag-aio-mass-inject = { workspace = true }
+rag-aio-eval = { workspace = true }
+rag-aio-ui = { workspace = true }
 rag-aio = { workspace = true }
 
 [dependency-groups]

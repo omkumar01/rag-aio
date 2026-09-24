@@ -1,29 +1,29 @@
 [project]
-name = "rag-mass-inject"
+name = "rag-aio-mass-inject"
 version = "0.1.0"
 description = "rag-aio high-throughput bulk ingestion with checkpoints and backpressure"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "rag-core",
-    "rag-doc-handler",
-    "rag-ocr",
-    "rag-embedder",
-    "rag-db-handler",
+    "rag-aio-core",
+    "rag-aio-doc-handler",
+    "rag-aio-ocr",
+    "rag-aio-embedder",
+    "rag-aio-db-handler",
     "httpx>=0.27",
     "aiosqlite>=0.20",
 ]
 
 [project.optional-dependencies]
 test = [
-    "rag-cache",
-    "rag-retrieval",
-    "rag-rerank",
-    "rag-context",
-    "rag-query",
-    "rag-llm-provider",
-    "rag-orchestrator",
+    "rag-aio-cache",
+    "rag-aio-retrieval",
+    "rag-aio-rerank",
+    "rag-aio-context",
+    "rag-aio-query",
+    "rag-aio-llm-provider",
+    "rag-aio-orchestrator",
 ]
 
 [build-system]

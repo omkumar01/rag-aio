@@ -6,27 +6,50 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "rag-core",
+    "rag-aio-core",
     "pydantic>=2.7",
-    "rag-cache",
-    "rag-observe",
-    "rag-db-handler",
-    "rag-doc-handler",
-    "rag-ocr",
-    "rag-embedder",
-    "rag-retrieval",
-    "rag-rerank",
-    "rag-query",
-    "rag-context",
-    "rag-llm-provider",
-    "rag-generation",
-    "rag-orchestrator",
-    "rag-mass-inject",
-    "rag-eval",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "typer>=0.12",
     "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# Extras keep the import-style names (rag-ocr, not rag-aio-ocr); each points at
+# the namespaced PyPI distribution of the same component.
+rag-core = ["rag-aio-core"]
+rag-cache = ["rag-aio-cache"]
+rag-observe = ["rag-aio-observe"]
+rag-db-handler = ["rag-aio-db-handler"]
+rag-doc-handler = ["rag-aio-doc-handler"]
+rag-ocr = ["rag-aio-ocr"]
+rag-embedder = ["rag-aio-embedder"]
+rag-retrieval = ["rag-aio-retrieval"]
+rag-rerank = ["rag-aio-rerank"]
+rag-query = ["rag-aio-query"]
+rag-context = ["rag-aio-context"]
+rag-llm-provider = ["rag-aio-llm-provider"]
+rag-generation = ["rag-aio-generation"]
+rag-orchestrator = ["rag-aio-orchestrator"]
+rag-mass-inject = ["rag-aio-mass-inject"]
+rag-eval = ["rag-aio-eval"]
+all = [
+    "rag-aio-core",
+    "rag-aio-cache",
+    "rag-aio-observe",
+    "rag-aio-db-handler",
+    "rag-aio-doc-handler",
+    "rag-aio-ocr",
+    "rag-aio-embedder",
+    "rag-aio-retrieval",
+    "rag-aio-rerank",
+    "rag-aio-query",
+    "rag-aio-context",
+    "rag-aio-llm-provider",
+    "rag-aio-generation",
+    "rag-aio-orchestrator",
+    "rag-aio-mass-inject",
+    "rag-aio-eval",
 ]
 
 [project.scripts]
