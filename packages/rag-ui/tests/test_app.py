@@ -21,7 +21,9 @@ def app_test(monkeypatch: pytest.MonkeyPatch) -> AppTest:
     """Run the console once, isolated from any real backend."""
     monkeypatch.setenv("API_URL", "http://127.0.0.1:59999")
     at = AppTest.from_file(APP_PATH)
-    at.run()
+    # AppTest's default timeout is 3s, which is too tight for the first run on
+    # slow CI runners (streamlit import + script compile).
+    at.run(timeout=30)
     return at
 
 
