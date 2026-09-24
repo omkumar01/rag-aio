@@ -1,10 +1,11 @@
 # Changelog
 
 All notable changes to rag-aio are documented here. Format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
-[Semantic Versioning](https://semver.org/).
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+<!-- Add new entries here, above the latest release. -->
+
+## [v0.1.0]
 
 Initial build of the rag-aio platform: an asynchronous, modular RAG system delivered as a
 uv workspace of 18 packages. Verification at close: full gate green (872 package tests +
