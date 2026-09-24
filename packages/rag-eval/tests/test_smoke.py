@@ -4,7 +4,7 @@ import rag_eval
 
 
 def test_version() -> None:
-    assert rag_eval.__version__ == "0.1.0"
+    assert rag_eval.__version__ == "0.1.1"
 
 
 def test_exports() -> None:

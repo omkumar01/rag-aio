@@ -15,7 +15,7 @@ import rag_ui
 
 
 def test_version() -> None:
-    assert rag_ui.__version__ == "0.1.0"
+    assert rag_ui.__version__ == "0.1.1"
 
 
 def test_import_does_not_pull_streamlit() -> None:

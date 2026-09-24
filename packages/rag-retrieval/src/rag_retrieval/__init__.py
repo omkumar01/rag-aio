@@ -9,7 +9,7 @@ from .fusion import FusionStrategy, ReciprocalRankFusion, WeightedScoreFusion
 from .hybrid import HybridRetriever
 from .sparse import BM25Retriever, SparseRetriever, SparseSearchStore
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "BM25Retriever",

@@ -62,7 +62,7 @@ from .retrieval import RetrievalHit, RetrievalResult
 from .serde import from_json, to_json
 from .types import SparseVector
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "BlockKind",

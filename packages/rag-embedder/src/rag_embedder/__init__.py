@@ -32,7 +32,7 @@ from .indexing import (
 from .pipeline import EmbeddingPipeline, PipelineOutcome
 from .tokenization import HFTokenizer, SimpleTokenizer
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "CHUNKERS",

@@ -1,6 +1,6 @@
 [project]
 name = "rag-aio-ocr"
-version = "0.1.0"
+version = "0.1.1"
 description = "rag-aio hybrid mechanical + semantic OCR with provenance-preserving regions"
 readme = "README.md"
 requires-python = ">=3.12"

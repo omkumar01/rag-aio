@@ -2,7 +2,7 @@ import rag_orchestrator
 
 
 def test_import() -> None:
-    assert rag_orchestrator.__version__ == "0.1.0"
+    assert rag_orchestrator.__version__ == "0.1.1"
 
 
 def test_import_does_not_pull_heavy_backends() -> None:

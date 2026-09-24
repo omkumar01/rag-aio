@@ -24,7 +24,7 @@ from rag_ocr.preprocess import (
 from rag_ocr.routing import OCRRouter, OCRRouterConfig
 from rag_ocr.semantic import VLMSemanticExtractor, classify_kind
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "NullOCREngine",

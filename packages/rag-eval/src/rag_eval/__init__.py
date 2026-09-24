@@ -35,7 +35,7 @@ from .metrics import (
 from .report import format_report
 from .runner import EvalRunner, compare
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     # ranking metrics

@@ -21,7 +21,7 @@ from .local import CrossEncoderReranker, HeuristicReranker
 from .pipeline import RerankPipeline
 from .remote import RemoteReranker
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "CrossEncoderReranker",

@@ -1,6 +1,6 @@
 [project]
 name = "rag-aio-mass-inject"
-version = "0.1.0"
+version = "0.1.1"
 description = "rag-aio high-throughput bulk ingestion with checkpoints and backpressure"
 readme = "README.md"
 requires-python = ">=3.12"

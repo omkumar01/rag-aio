@@ -26,7 +26,7 @@ from .ordering import (
 from .render import render_context
 from .tokenizer import ContextTokenizer, WhitespaceCounter
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "STRATEGIES",

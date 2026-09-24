@@ -21,7 +21,7 @@ from .sources import (
 )
 from .workers import BoundedQueue, StageWorker
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "SUPPORTED_EXTENSIONS",

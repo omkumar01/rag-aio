@@ -32,7 +32,7 @@ from .registry import HealthProbe, ProviderRegistry, RegistryHealth
 from .routing import ModelRouter, RouteDecision
 from .secrets import SecretRef, mask_secret, resolve_secret
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "ConfigError",

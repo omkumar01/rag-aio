@@ -23,7 +23,7 @@ from .qdrant_store import QdrantVectorStore
 from .serialization import document_to_row_fields, row_to_document
 from .sql_store import SQLDocumentStore, SQLKeyValueStore, SQLStore
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "InMemoryKeyValueStore",

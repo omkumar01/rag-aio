@@ -1,6 +1,6 @@
 [project]
 name = "rag-aio-embedder"
-version = "0.1.0"
+version = "0.1.1"
 description = "rag-aio chunking, tokenization, embedding and indexing orchestration"
 readme = "README.md"
 requires-python = ">=3.12"
