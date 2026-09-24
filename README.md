@@ -49,6 +49,35 @@ evaluation, bulk ingestion, a benchmark suite, and a Streamlit management consol
 | Secrets sprawl | Secrets by reference (env-var names), never values; redacted in logs, traces, and UI |
 | Slow bulk onboarding | `rag-mass-inject` with bounded queues, per-stage concurrency, checkpoints, dead letters |
 
+## Installation
+
+All packages are published to PyPI. The `rag-aio` facade is dependency-light by
+default; you opt into capability with extras:
+
+```bash
+pip install rag-aio                        # base: rag-aio-core + CLI/service deps
+pip install "rag-aio[all]"                 # all 16 backend packages
+pip install "rag-aio[rag-ocr]"             # add a single package (rag-ocr)
+pip install "rag-aio[rag-embedder,rag-retrieval]"   # any combination
+pip install rag-aio-ui                     # Streamlit console (installed separately)
+```
+
+Every workspace package is also published under its own namespaced name —
+`rag-aio-core`, `rag-aio-ocr`, `rag-aio-retrieval`, … — so library users can
+depend on just the piece they need: `pip install rag-aio-ocr` pulls the OCR
+package and its dependencies (`rag-aio-core`) without the facade. (Sub-package
+distributions carry the `rag-aio-` prefix because the generic `rag-retrieval`,
+`rag-orchestrator`, and `rag-eval` names were already taken on PyPI.) The
+facade's pipeline/ask features require at least `rag-aio[rag-orchestrator]`;
+`all` is the one-stop extra. Individual packages carry their own backend
+extras, e.g. `rapidocr` on `rag-aio-ocr` — see each package README.
+
+For development, clone and sync the uv workspace instead:
+
+```bash
+uv sync
+```
+
 ## Quickstart
 
 The fully offline path — no model server, no vector database, no network:
