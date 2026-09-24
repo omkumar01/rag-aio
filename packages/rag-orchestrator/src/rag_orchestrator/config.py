@@ -165,7 +165,7 @@ class PipelineConfig(RagBaseModel):
                 strategy="openai_compatible",
                 overrides={
                     "base_url": "http://localhost:1234/v1",
-                    "model": "local-chat",
+                    "model": "mistralai/ministral-3-3b",
                     "temperature": 0.2,
                 },
             ),
