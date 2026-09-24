@@ -51,26 +51,21 @@ evaluation, bulk ingestion, a benchmark suite, and a Streamlit management consol
 
 ## Installation
 
-All packages are published to PyPI. The `rag-aio` facade is dependency-light by
-default; you opt into capability with extras:
+Everything ships in a single PyPI project: one `rag-aio` wheel contains all 18
+packages' code. The base install pulls only light, pure-Python dependencies;
+heavy backends are opt-in via extras:
 
 ```bash
-pip install rag-aio                        # base: rag-aio-core + CLI/service deps
-pip install "rag-aio[all]"                 # all 16 backend packages
-pip install "rag-aio[rag-ocr]"             # add a single package (rag-ocr)
-pip install "rag-aio[rag-embedder,rag-retrieval]"   # any combination
-pip install rag-aio-ui                     # Streamlit console (installed separately)
+pip install rag-aio                     # all packages, mock/light backends
+pip install "rag-aio[all]"              # + every optional backend
+pip install "rag-aio[qdrant,fastembed]" # the full local RAG stack
+pip install "rag-aio[streamlit]"        # management console UI
 ```
 
-Every workspace package is also published under its own namespaced name —
-`rag-aio-core`, `rag-aio-ocr`, `rag-aio-retrieval`, … — so library users can
-depend on just the piece they need: `pip install rag-aio-ocr` pulls the OCR
-package and its dependencies (`rag-aio-core`) without the facade. (Sub-package
-distributions carry the `rag-aio-` prefix because the generic `rag-retrieval`,
-`rag-orchestrator`, and `rag-eval` names were already taken on PyPI.) The
-facade's pipeline/ask features require at least `rag-aio[rag-orchestrator]`;
-`all` is the one-stop extra. Individual packages carry their own backend
-extras, e.g. `rapidocr` on `rag-aio-ocr` — see each package README.
+Available extras: `qdrant`, `fastembed`, `sentence-transformers`, `faiss`,
+`postgres`, `pgvector`, `redis`, `docling`, `msg`, `rtf`, `pydantic-ai`,
+`streamlit`, and the `all` catch-all. Without them, the fully-offline mock
+profile still runs end to end — the quickstart below needs nothing extra.
 
 For development, clone and sync the uv workspace instead:
 

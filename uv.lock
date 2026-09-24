@@ -4019,124 +4019,126 @@ name = "rag-aio"
 version = "0.1.0"
 source = { editable = "packages/rag-aio" }
 dependencies = [
+    { name = "aiosqlite" },
+    { name = "beautifulsoup4" },
+    { name = "bm25s" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "lxml" },
+    { name = "numpy" },
+    { name = "openpyxl" },
+    { name = "opentelemetry-api" },
+    { name = "pillow" },
     { name = "pydantic" },
-    { name = "rag-aio-core" },
+    { name = "pymupdf" },
+    { name = "python-docx" },
+    { name = "python-pptx" },
+    { name = "pyyaml" },
+    { name = "sqlalchemy" },
+    { name = "tokenizers" },
     { name = "typer" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
 all = [
-    { name = "rag-aio-cache" },
-    { name = "rag-aio-context" },
-    { name = "rag-aio-core" },
-    { name = "rag-aio-db-handler" },
-    { name = "rag-aio-doc-handler" },
-    { name = "rag-aio-embedder" },
-    { name = "rag-aio-eval" },
-    { name = "rag-aio-generation" },
-    { name = "rag-aio-llm-provider" },
-    { name = "rag-aio-mass-inject" },
-    { name = "rag-aio-observe" },
-    { name = "rag-aio-ocr" },
-    { name = "rag-aio-orchestrator" },
-    { name = "rag-aio-query" },
-    { name = "rag-aio-rerank" },
-    { name = "rag-aio-retrieval" },
+    { name = "asyncpg" },
+    { name = "docling" },
+    { name = "extract-msg" },
+    { name = "faiss-cpu" },
+    { name = "fastembed" },
+    { name = "pgvector" },
+    { name = "pydantic-ai" },
+    { name = "qdrant-client" },
+    { name = "redis" },
+    { name = "sentence-transformers" },
+    { name = "streamlit" },
+    { name = "striprtf" },
 ]
-rag-cache = [
-    { name = "rag-aio-cache" },
+docling = [
+    { name = "docling" },
 ]
-rag-context = [
-    { name = "rag-aio-context" },
+faiss = [
+    { name = "faiss-cpu" },
 ]
-rag-core = [
-    { name = "rag-aio-core" },
+fastembed = [
+    { name = "fastembed" },
 ]
-rag-db-handler = [
-    { name = "rag-aio-db-handler" },
+msg = [
+    { name = "extract-msg" },
 ]
-rag-doc-handler = [
-    { name = "rag-aio-doc-handler" },
+pgvector = [
+    { name = "pgvector" },
 ]
-rag-embedder = [
-    { name = "rag-aio-embedder" },
+postgres = [
+    { name = "asyncpg" },
 ]
-rag-eval = [
-    { name = "rag-aio-eval" },
+pydantic-ai = [
+    { name = "pydantic-ai" },
 ]
-rag-generation = [
-    { name = "rag-aio-generation" },
+qdrant = [
+    { name = "qdrant-client" },
 ]
-rag-llm-provider = [
-    { name = "rag-aio-llm-provider" },
+redis = [
+    { name = "redis" },
 ]
-rag-mass-inject = [
-    { name = "rag-aio-mass-inject" },
+rtf = [
+    { name = "striprtf" },
 ]
-rag-observe = [
-    { name = "rag-aio-observe" },
+sentence-transformers = [
+    { name = "sentence-transformers" },
 ]
-rag-ocr = [
-    { name = "rag-aio-ocr" },
-]
-rag-orchestrator = [
-    { name = "rag-aio-orchestrator" },
-]
-rag-query = [
-    { name = "rag-aio-query" },
-]
-rag-rerank = [
-    { name = "rag-aio-rerank" },
-]
-rag-retrieval = [
-    { name = "rag-aio-retrieval" },
+streamlit = [
+    { name = "streamlit" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "aiosqlite", specifier = ">=0.20" },
+    { name = "asyncpg", marker = "extra == 'all'", specifier = ">=0.29" },
+    { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29" },
+    { name = "beautifulsoup4", specifier = ">=4.12" },
+    { name = "bm25s", specifier = ">=0.2" },
+    { name = "docling", marker = "extra == 'all'", specifier = ">=2.0" },
+    { name = "docling", marker = "extra == 'docling'", specifier = ">=2.0" },
+    { name = "extract-msg", marker = "extra == 'all'", specifier = ">=0.50" },
+    { name = "extract-msg", marker = "extra == 'msg'", specifier = ">=0.50" },
+    { name = "faiss-cpu", marker = "extra == 'all'", specifier = ">=1.8" },
+    { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.8" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastembed", marker = "extra == 'all'", specifier = ">=0.3" },
+    { name = "fastembed", marker = "extra == 'fastembed'", specifier = ">=0.3" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "lxml", specifier = ">=5.0" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "openpyxl", specifier = ">=3.1" },
+    { name = "opentelemetry-api", specifier = ">=1.25" },
+    { name = "pgvector", marker = "extra == 'all'", specifier = ">=0.3" },
+    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.3" },
+    { name = "pillow", specifier = ">=10.0" },
     { name = "pydantic", specifier = ">=2.7" },
-    { name = "rag-aio-cache", marker = "extra == 'all'", editable = "packages/rag-cache" },
-    { name = "rag-aio-cache", marker = "extra == 'rag-cache'", editable = "packages/rag-cache" },
-    { name = "rag-aio-context", marker = "extra == 'all'", editable = "packages/rag-context" },
-    { name = "rag-aio-context", marker = "extra == 'rag-context'", editable = "packages/rag-context" },
-    { name = "rag-aio-core", editable = "packages/rag-core" },
-    { name = "rag-aio-core", marker = "extra == 'all'", editable = "packages/rag-core" },
-    { name = "rag-aio-core", marker = "extra == 'rag-core'", editable = "packages/rag-core" },
-    { name = "rag-aio-db-handler", marker = "extra == 'all'", editable = "packages/rag-db-handler" },
-    { name = "rag-aio-db-handler", marker = "extra == 'rag-db-handler'", editable = "packages/rag-db-handler" },
-    { name = "rag-aio-doc-handler", marker = "extra == 'all'", editable = "packages/rag-doc-handler" },
-    { name = "rag-aio-doc-handler", marker = "extra == 'rag-doc-handler'", editable = "packages/rag-doc-handler" },
-    { name = "rag-aio-embedder", marker = "extra == 'all'", editable = "packages/rag-embedder" },
-    { name = "rag-aio-embedder", marker = "extra == 'rag-embedder'", editable = "packages/rag-embedder" },
-    { name = "rag-aio-eval", marker = "extra == 'all'", editable = "packages/rag-eval" },
-    { name = "rag-aio-eval", marker = "extra == 'rag-eval'", editable = "packages/rag-eval" },
-    { name = "rag-aio-generation", marker = "extra == 'all'", editable = "packages/rag-generation" },
-    { name = "rag-aio-generation", marker = "extra == 'rag-generation'", editable = "packages/rag-generation" },
-    { name = "rag-aio-llm-provider", marker = "extra == 'all'", editable = "packages/rag-llm-provider" },
-    { name = "rag-aio-llm-provider", marker = "extra == 'rag-llm-provider'", editable = "packages/rag-llm-provider" },
-    { name = "rag-aio-mass-inject", marker = "extra == 'all'", editable = "packages/rag-mass-inject" },
-    { name = "rag-aio-mass-inject", marker = "extra == 'rag-mass-inject'", editable = "packages/rag-mass-inject" },
-    { name = "rag-aio-observe", marker = "extra == 'all'", editable = "packages/rag-observe" },
-    { name = "rag-aio-observe", marker = "extra == 'rag-observe'", editable = "packages/rag-observe" },
-    { name = "rag-aio-ocr", marker = "extra == 'all'", editable = "packages/rag-ocr" },
-    { name = "rag-aio-ocr", marker = "extra == 'rag-ocr'", editable = "packages/rag-ocr" },
-    { name = "rag-aio-orchestrator", marker = "extra == 'all'", editable = "packages/rag-orchestrator" },
-    { name = "rag-aio-orchestrator", marker = "extra == 'rag-orchestrator'", editable = "packages/rag-orchestrator" },
-    { name = "rag-aio-query", marker = "extra == 'all'", editable = "packages/rag-query" },
-    { name = "rag-aio-query", marker = "extra == 'rag-query'", editable = "packages/rag-query" },
-    { name = "rag-aio-rerank", marker = "extra == 'all'", editable = "packages/rag-rerank" },
-    { name = "rag-aio-rerank", marker = "extra == 'rag-rerank'", editable = "packages/rag-rerank" },
-    { name = "rag-aio-retrieval", marker = "extra == 'all'", editable = "packages/rag-retrieval" },
-    { name = "rag-aio-retrieval", marker = "extra == 'rag-retrieval'", editable = "packages/rag-retrieval" },
+    { name = "pydantic-ai", marker = "extra == 'all'", specifier = ">=0.2" },
+    { name = "pydantic-ai", marker = "extra == 'pydantic-ai'", specifier = ">=0.2" },
+    { name = "pymupdf", specifier = ">=1.24" },
+    { name = "python-docx", specifier = ">=1.1" },
+    { name = "python-pptx", specifier = ">=0.6.23" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "qdrant-client", marker = "extra == 'all'", specifier = ">=1.10" },
+    { name = "qdrant-client", marker = "extra == 'qdrant'", specifier = ">=1.10" },
+    { name = "redis", marker = "extra == 'all'", specifier = ">=5.0" },
+    { name = "redis", marker = "extra == 'redis'", specifier = ">=5.0" },
+    { name = "sentence-transformers", marker = "extra == 'all'", specifier = ">=3.0" },
+    { name = "sentence-transformers", marker = "extra == 'sentence-transformers'", specifier = ">=3.0" },
+    { name = "sqlalchemy", specifier = ">=2.0" },
+    { name = "streamlit", marker = "extra == 'all'", specifier = ">=1.37" },
+    { name = "streamlit", marker = "extra == 'streamlit'", specifier = ">=1.37" },
+    { name = "striprtf", marker = "extra == 'all'", specifier = ">=0.0.26" },
+    { name = "striprtf", marker = "extra == 'rtf'", specifier = ">=0.0.26" },
+    { name = "tokenizers", specifier = ">=0.19" },
     { name = "typer", specifier = ">=0.12" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
-provides-extras = ["rag-core", "rag-cache", "rag-observe", "rag-db-handler", "rag-doc-handler", "rag-ocr", "rag-embedder", "rag-retrieval", "rag-rerank", "rag-query", "rag-context", "rag-llm-provider", "rag-generation", "rag-orchestrator", "rag-mass-inject", "rag-eval", "all"]
+provides-extras = ["qdrant", "fastembed", "sentence-transformers", "faiss", "postgres", "pgvector", "redis", "docling", "msg", "rtf", "pydantic-ai", "streamlit", "all"]
 
 [[package]]
 name = "rag-aio-cache"

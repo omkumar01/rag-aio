@@ -18,34 +18,31 @@ jobs:
         run: uv sync
       - name: Full quality gate
         run: uv run python scripts/check.py --fast
-      - name: Build all packages
-        run: uv build --all-packages
-      - name: Validate rag-aio extras cover the workspace
-        # The rag-aio facade exposes one pip extra per workspace package plus
-        # `all` (the facade itself and rag-ui are excluded); fail the release
-        # if a new package was added but not exposed.
+      - name: Build single rag-aio wheel
+        # Wheel-only: the build hook bundles every workspace package's code
+        # from sibling paths that only exist inside the repository tree.
+        run: uv build --package rag-aio --wheel
+      - name: Validate the wheel bundles every workspace package
         run: |
           uv run python - <<'EOF'
-          import tomllib
+          import zipfile
           from pathlib import Path
 
-          package_dirs = sorted(
-              p.name
+          expected = {
+              p.name.replace("-", "_")
               for p in Path("packages").iterdir()
-              if (p / "pyproject.toml").is_file() and p.name not in {"rag-aio", "rag-ui"}
-          )
-          facade = tomllib.loads(Path("packages/rag-aio/pyproject.toml").read_text())
-          extras = sorted(facade["project"]["optional-dependencies"])
-          expected = sorted(package_dirs + ["all"])
-
-          missing = sorted(set(expected) - set(extras))
-          stale = sorted(set(extras) - set(expected))
-          if missing or stale:
-              raise SystemExit(
-                  f"rag-aio extras out of sync with packages/\n"
-                  f"  missing extras: {missing}\n  stale extras: {stale}"
-              )
-          print(f"OK: {len(extras)} extras cover {len(package_dirs)} workspace packages")
+              if (p / "pyproject.toml").is_file()
+          }
+          wheel = next(Path("dist").glob("rag_aio-*.whl"))
+          bundled = {
+              n.split("/")[0]
+              for n in zipfile.ZipFile(wheel).namelist()
+              if n.endswith(".py")
+          }
+          missing = expected - bundled
+          if missing:
+              raise SystemExit(f"wheel is missing bundled packages: {sorted(missing)}")
+          print(f"OK: wheel bundles {len(bundled)} packages")
           EOF
       - uses: actions/upload-artifact@v4
         with:

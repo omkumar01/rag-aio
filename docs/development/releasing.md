@@ -10,7 +10,8 @@ contract changes are released in lockstep: `rag-core` first, then dependents.
 1. Ensure `scripts/check.py` passes fully (including integration tests).
 2. Update `CHANGELOG.md` entries for every changed package.
 3. Bump versions (`uv run python scripts/bump_version.py <version>` when introduced).
-4. Build artifacts: `uv build --all-packages`.
+4. Build artifacts: `uv build --package rag-aio --wheel` (single distribution,
+   wheel only — see [Install surface](#install-surface)).
 5. Verify artifacts from a clean environment (fresh `uv venv`, install wheels, import
    smoke test).
 6. Tag and push; the `release.yml` workflow publishes to PyPI via **trusted publishing
@@ -22,31 +23,31 @@ contract changes are released in lockstep: `rag-core` first, then dependents.
 
 ## Install surface
 
-The `rag-aio` facade is the PyPI umbrella package. Its base install is
-dependency-light (`rag-aio-core` + CLI/service deps); every workspace package is
-exposed as a pip extra of the facade (extras use the import-style name, e.g.
-`rag-ocr`) plus an `all` extra:
+Everything publishes under a **single PyPI project: `rag-aio`**. One wheel
+bundles all 18 workspace packages' code (`rag_aio`, `rag_core`, … `rag_ui`).
 
 ```bash
-pip install rag-aio             # base only
-pip install "rag-aio[all]"      # all 16 backend packages
-pip install "rag-aio[rag-ocr]"  # single package + its own dependencies
+pip install rag-aio                     # all packages, mock/light backends
+pip install "rag-aio[all]"              # + every optional backend
+pip install "rag-aio[qdrant,fastembed]" # pick individual backends
 ```
 
-**Distribution naming:** sub-packages publish as `rag-aio-<name>`
-(`rag-aio-core`, `rag-aio-ocr`, `rag-aio-orchestrator`, …) — the generic
-`rag-retrieval`, `rag-orchestrator`, and `rag-eval` names were already taken on
-PyPI by unrelated projects. Import names (`rag_core`, …) and directory names
-under `packages/` are unchanged; only the `[project.name]` in each pyproject
-carries the prefix. Do not drop the prefix for new packages.
+**Distribution shape:**
 
-**Contract:** every package under `packages/` except the facade itself and
-`rag-ui` must have a matching extra in `packages/rag-aio/pyproject.toml` (and be
-listed in `all`). The release workflow validates this before publishing and
-fails the build otherwise — when adding a new package, add its extra to the
-facade in the same change. `rag-ui` is intentionally not part of `all` (it
-depends on `rag-aio` and pulls Streamlit); users install it standalone as
-`rag-aio-ui`.
+- Base dependencies are the union of the members' light third-party deps
+  (pydantic, fastapi, numpy, tokenizers, sqlalchemy, pymupdf, …). Heavy
+  backend SDKs are extras keyed by backend name: `qdrant`, `fastembed`,
+  `sentence-transformers`, `faiss`, `postgres`, `pgvector`, `redis`,
+  `docling`, `msg`, `rtf`, `pydantic-ai`, `streamlit`, plus `all`.
+- **Wheel-only.** Build with `uv build --package rag-aio --wheel`. The build
+  hook (`packages/rag-aio/build_hook.py`) copies the sibling members' sources
+  into the wheel; an sdist build cannot resolve those sibling paths, so no
+  sdist is published.
+- When adding a new workspace package, its code is bundled automatically on
+  the next build; the release workflow fails if the wheel is missing any
+  `packages/` module. Decide explicitly whether its third-party deps belong
+  in the facade's base dependencies or in an extra, and keep heavy imports
+  lazy so the base install stays functional offline.
 
 ## Checklist
 

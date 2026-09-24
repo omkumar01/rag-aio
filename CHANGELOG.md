@@ -15,24 +15,21 @@ packages with a clean wheel import smoke test, a live e2e run over LM Studio
 
 ### Added
 
-- **PyPI install surface**: `rag-aio` published as the umbrella package with a
-  dependency-light base (`rag-aio-core` + CLI/service deps) and one pip extra per
-  workspace package plus `all` — `pip install "rag-aio[all]"` installs the full
-  backend stack, `pip install "rag-aio[rag-ocr]"` a single package with its own
-  dependencies. Sub-package distributions are namespaced as `rag-aio-<name>`
-  (`rag-aio-core`, `rag-aio-ocr`, …) because the generic `rag-retrieval`,
-  `rag-orchestrator`, and `rag-eval` names were already taken on PyPI; import names
-  and repository layout are unchanged. The release workflow validates that the extras
-  cover `packages/` before publishing, and can also be triggered manually
-  (`workflow_dispatch`).
-- **Lazy orchestrator exports**: `rag_orchestrator` now exposes its heavy surfaces
-  (pipeline, runtime, wiring, ingestion) via PEP 562 lazy attributes — only the
-  configuration models import eagerly — and `rag-aio` imports orchestrator on first
-  use with an actionable install hint, keeping `import rag_aio` functional with the
-  base install alone. The declarative pipeline configuration
-  (`PipelineConfig` and stage models) moved to `rag_core.pipeline_config` (re-exported
-  from `rag_orchestrator.config` for compatibility) so the facade base install can
-  validate config without rag-orchestrator installed.
+- **Single-project PyPI install**: everything publishes as one `rag-aio`
+  distribution — a single wheel bundles all 18 packages' code. Base install
+  pulls only light third-party deps and runs the fully-offline mock profile;
+  heavy backends are extras (`qdrant`, `fastembed`, `sentence-transformers`,
+  `faiss`, `postgres`, `pgvector`, `redis`, `docling`, `msg`, `rtf`,
+  `pydantic-ai`, `streamlit`) plus an `all` catch-all. Development stays a
+  multi-package uv workspace; a custom hatch build hook bundles the members'
+  sources into the release wheel (wheel-only builds).
+- **Lazy backend imports**: `qdrant_client` in `rag-db-handler` loads on first
+  store construction with an actionable `pip install "rag-aio[qdrant]"` hint,
+  and `rag_orchestrator` exposes its heavy surfaces via PEP 562 lazy attributes
+  — keeping `import rag_aio` functional with the base install alone. The
+  declarative pipeline configuration (`PipelineConfig` and stage models) moved
+  to `rag_core.pipeline_config` (re-exported from `rag_orchestrator.config`
+  for compatibility).
 - **Workspace**: 18-package uv monorepo under `packages/`, layered as infrastructure
   (`rag-core`, `rag-observe`, `rag-cache`, `rag-db-handler`), processing (`rag-doc-handler`,
   `rag-ocr`, `rag-embedder`, `rag-mass-inject`), intelligence (`rag-query`,

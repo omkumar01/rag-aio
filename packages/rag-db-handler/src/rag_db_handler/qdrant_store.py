@@ -9,14 +9,16 @@ Qdrant requires UUID or integer point ids. We derive a deterministic UUIDv5 from
 store the original ``chunk_id`` in the payload for retrieval reconstruction.
 """
 
-# Note on imports: ``qdrant-client`` ships a ``py.typed`` marker, so mypy would
-# normally analyze its type stubs. qdrant-client imports ``numpy`` at module
-# load, and the installed numpy stubs use PEP 742 ``type`` syntax that this
-# project's mypy target (Python 3.11) cannot parse -- a fatal environment
-# error. The repository mypy config already intends qdrant_client to be treated
-# as untyped (``ignore_missing_imports``); to honor that intent regardless of
-# the shipped py.typed we load the client through ``importlib`` and keep only
-# ``Any``-typed aliases, so mypy never follows into qdrant_client/numpy.
+# ``qdrant-client`` is an optional backend (the ``qdrant`` extra), so it is
+# resolved lazily on first store construction rather than at module import.
+# It ships a ``py.typed`` marker, so mypy would normally analyze its type
+# stubs; qdrant-client imports ``numpy`` at module load, and the installed
+# numpy stubs use PEP 742 ``type`` syntax this project's mypy target cannot
+# parse -- a fatal environment error. The repository mypy config already
+# intends qdrant_client to be treated as untyped (``ignore_missing_imports``);
+# to honor that intent regardless of the shipped py.typed we load the client
+# through ``importlib`` and keep only ``Any``-typed aliases, so mypy never
+# follows into qdrant_client/numpy.
 from __future__ import annotations
 
 import importlib
@@ -31,25 +33,77 @@ from rag_core.retrieval import RetrievalHit
 if TYPE_CHECKING:
     from .config import VectorStoreConfig
 
-_qdrant: Any = importlib.import_module("qdrant_client")
-_models: Any = importlib.import_module("qdrant_client.http.models")
+    # Alias declarations only (never imported at runtime — see _load_qdrant);
+    # kept Any-typed so mypy never follows into qdrant_client/numpy stubs.
+    AsyncQdrantClient = Any
+    Distance = Any
+    FieldCondition = Any
+    Filter = Any
+    MatchAny = Any
+    MatchValue = Any
+    PointIdsList = Any
+    PointStruct = Any
+    VectorParams = Any
 
-AsyncQdrantClient: Any = _qdrant.AsyncQdrantClient
-Distance: Any = _models.Distance
-FieldCondition: Any = _models.FieldCondition
-Filter: Any = _models.Filter
-MatchAny: Any = _models.MatchAny
-MatchValue: Any = _models.MatchValue
-PointIdsList: Any = _models.PointIdsList
-PointStruct: Any = _models.PointStruct
-VectorParams: Any = _models.VectorParams
+_QDRANT_NAMES = (
+    "AsyncQdrantClient",
+    "Distance",
+    "FieldCondition",
+    "Filter",
+    "MatchAny",
+    "MatchValue",
+    "PointIdsList",
+    "PointStruct",
+    "VectorParams",
+)
+
+_qdrant: Any = None
+_models: Any = None
+
+
+def _load_qdrant() -> None:
+    """Import ``qdrant_client`` on first use and bind the aliases below."""
+    global _qdrant, _models
+    if _qdrant is None:
+        try:
+            _qdrant = importlib.import_module("qdrant_client")
+            _models = importlib.import_module("qdrant_client.http.models")
+        except ImportError as exc:
+            msg = (
+                "rag_db_handler.qdrant_store needs the 'qdrant-client' package. "
+                'Install it with: pip install "rag-aio[qdrant]".'
+            )
+            raise ImportError(msg) from exc
+        for name in _QDRANT_NAMES:
+            source = _qdrant if name == "AsyncQdrantClient" else _models
+            globals()[name] = getattr(source, name)
+
+
+def __getattr__(name: str) -> Any:
+    """Serve the qdrant aliases to ``from ... import`` users lazily."""
+    if name in _QDRANT_NAMES:
+        _load_qdrant()
+        return globals()[name]
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+_DISTANCE_MAP: dict[str, Any] | None = None
 
 _UUID_NAMESPACE = uuid.NAMESPACE_DNS
-_DISTANCE_MAP: dict[str, Any] = {
-    "cosine": Distance.COSINE,
-    "euclid": Distance.EUCLID,
-    "dot": Distance.DOT,
-}
+
+
+def _distance_map() -> dict[str, Any]:
+    global _DISTANCE_MAP
+    if _DISTANCE_MAP is None:
+        _load_qdrant()
+        distance = globals()["Distance"]
+        _DISTANCE_MAP = {
+            "cosine": distance.COSINE,
+            "euclid": distance.EUCLID,
+            "dot": distance.DOT,
+        }
+    return _DISTANCE_MAP
 
 
 def _point_id(namespace: str | None, chunk_id: str) -> str:
@@ -71,19 +125,21 @@ def _build_filter(filters: dict[str, Any] | None, namespace: str | None) -> Filt
     """
     must: list[FieldCondition] = []
     if namespace is not None:
-        must.append(FieldCondition(key="namespace", match=MatchValue(value=namespace)))
+        must.append(
+            _models.FieldCondition(key="namespace", match=_models.MatchValue(value=namespace))
+        )
     for key, value in (filters or {}).items():
         if value is None:
             continue
         if isinstance(value, bool):
-            must.append(FieldCondition(key=key, match=MatchValue(value=value)))
+            must.append(_models.FieldCondition(key=key, match=_models.MatchValue(value=value)))
         elif isinstance(value, (list, tuple)):
-            must.append(MatchAny(any=list(value)))
+            must.append(_models.MatchAny(any=list(value)))
         else:
-            must.append(FieldCondition(key=key, match=MatchValue(value=value)))
+            must.append(_models.FieldCondition(key=key, match=_models.MatchValue(value=value)))
     if not must:
         return None
-    return Filter(must=must)
+    return _models.Filter(must=must)
 
 
 class QdrantVectorStore(VectorStore):
@@ -99,6 +155,7 @@ class QdrantVectorStore(VectorStore):
     """
 
     def __init__(self, config: VectorStoreConfig) -> None:
+        _load_qdrant()
         config.assert_valid()
         if config.backend != "qdrant":
             raise ConfigError(f"unsupported vector store backend: {config.backend}")
@@ -106,7 +163,7 @@ class QdrantVectorStore(VectorStore):
         self._config = config
         self._collection: str = config.collection
         self._vector_size: int = config.vector_size
-        self._distance: Distance = _DISTANCE_MAP[config.distance]
+        self._distance: Any = _distance_map()[config.distance]
         self._ready: bool = False
 
         api_key: str | None = None
@@ -116,9 +173,11 @@ class QdrantVectorStore(VectorStore):
             api_key = resolve_env_secret(config.api_key_ref)
 
         if config.mode == "local":
-            self._client = AsyncQdrantClient(path=config.path, prefer_grpc=False)
+            self._client = _qdrant.AsyncQdrantClient(path=config.path, prefer_grpc=False)
         else:
-            self._client = AsyncQdrantClient(url=config.url, api_key=api_key, prefer_grpc=False)
+            self._client = _qdrant.AsyncQdrantClient(
+                url=config.url, api_key=api_key, prefer_grpc=False
+            )
 
     def __repr__(self) -> str:
         # Deliberately omits any secret material; only exposes non-sensitive config.
@@ -140,7 +199,7 @@ class QdrantVectorStore(VectorStore):
         if not exists:
             await self._client.create_collection(
                 collection_name=self._collection,
-                vectors_config=VectorParams(
+                vectors_config=_models.VectorParams(
                     size=self._vector_size,
                     distance=self._distance,
                 ),
@@ -160,7 +219,7 @@ class QdrantVectorStore(VectorStore):
         await self._client.upsert(
             collection_name=self._collection,
             points=[
-                PointStruct(
+                _models.PointStruct(
                     id=_point_id(ns, chunk_id),
                     vector=[float(v) for v in vector],
                     payload=stored,
@@ -177,10 +236,10 @@ class QdrantVectorStore(VectorStore):
         """Batch upsert of ``(chunk_id, vector, payload)`` tuples (same namespace)."""
         await self.ensure_collection()
         ns = namespace or "default"
-        points: list[PointStruct] = []
+        points: list[Any] = []
         for chunk_id, vector, payload in items:
             points.append(
-                PointStruct(
+                _models.PointStruct(
                     id=_point_id(ns, chunk_id),
                     vector=[float(v) for v in vector],
                     payload=self._prepare_payload(payload, chunk_id, ns),
@@ -241,7 +300,7 @@ class QdrantVectorStore(VectorStore):
         if point_ids:
             await self._client.delete(
                 collection_name=self._collection,
-                points_selector=PointIdsList(points=point_ids),
+                points_selector=_models.PointIdsList(points=point_ids),
                 wait=True,
             )
 
@@ -250,7 +309,7 @@ class QdrantVectorStore(VectorStore):
         await self.ensure_collection()
         if namespace is not None:
             count_filter = Filter(
-                must=[FieldCondition(key="namespace", match=MatchValue(value=namespace))]
+                must=[FieldCondition(key="namespace", match=_models.MatchValue(value=namespace))]
             )
             result = await self._client.count(
                 collection_name=self._collection, count_filter=count_filter
