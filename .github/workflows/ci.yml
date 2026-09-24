@@ -47,6 +47,9 @@ jobs:
       - name: Tests
         run: uv run pytest -m "not integration and not e2e" --cov
 
+      - name: Benchmark harness unit tests
+        run: uv run pytest benchmarks -m unit
+
       - name: Read coverage total
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         id: coverage

@@ -114,6 +114,12 @@ def build_checks(args: argparse.Namespace) -> list[Check]:
     elif args.fast:
         pytest_argv += ["-m", "not integration and not e2e"]
     checks.append(Check("pytest", _uv_run_args(pytest_argv)))
+    # benchmarks/ is outside testpaths, so the harness unit tests need an
+    # explicit pass; skipped in the marker-specific integration/e2e modes.
+    if not (args.integration or args.e2e):
+        checks.append(
+            Check("pytest benchmarks (unit)", _uv_run_args(["pytest", "benchmarks", "-m", "unit"]))
+        )
 
     return checks
 

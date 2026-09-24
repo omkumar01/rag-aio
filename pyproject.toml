@@ -94,7 +94,7 @@ strict = true
 warn_unreachable = true
 show_error_codes = true
 pretty = true
-mypy_path = "packages"
+mypy_path = ["packages", "examples"]
 explicit_package_bases = true
 namespace_packages = true
 
@@ -118,6 +118,7 @@ markers = [
     "unit: fast tests without external services",
     "integration: tests against real local backends",
     "e2e: end-to-end tests, may require local LM Studio/Qdrant",
+    "benchmark: performance benchmarks, run explicitly via `pytest benchmarks -m benchmark`",
 ]
 
 [tool.coverage.run]
