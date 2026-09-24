@@ -1,5 +1,5 @@
 # rag-mass-inject
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 High-throughput bulk ingestion for rag-aio: discover sources from directories,
 file lists, sitemaps, or object-storage-style paths; stream them through
@@ -390,5 +390,5 @@ plane. It is intentionally thin — every real capability comes from a dependenc
 - **rag-observe** — the `observer` on `OrchestratorServices` receives
   `mass_inject.*` events, connecting bulk ingestion to distributed traces.
 
-See also [architecture.md](../../architecture.md) and [adr/ADR-0007-job-model.md](../../adr/)
+See also [architecture.md](https://github.com/omkumar01/rag-aio/blob/main/architecture.md) and [adr/ADR-0007-job-model.md](https://github.com/omkumar01/rag-aio/tree/main/adr)
 for the job/cancellation semantics this package builds on.

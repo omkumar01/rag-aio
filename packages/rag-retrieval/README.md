@@ -1,5 +1,5 @@
 # rag-retrieval
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Dedicated retrieval engine for rag-aio: dense vector retrieval, sparse/BM25 retrieval
 (`bm25s`), and hybrid retrieval with Reciprocal Rank Fusion and weighted-score fusion.

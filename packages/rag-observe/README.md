@@ -1,5 +1,5 @@
 # rag-observe
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 OpenTelemetry **API**-based instrumentation and redacted structured logging for
 every rag-aio stage. `rag-core` owns the `Observer` protocol; `rag-observe` is

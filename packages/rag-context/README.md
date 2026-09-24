@@ -1,5 +1,5 @@
 # rag-context
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Context-engineering layer between retrieval and generation for the
 [rag-aio](https://github.com/omkumar01/rag-aio) platform.

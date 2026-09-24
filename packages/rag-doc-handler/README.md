@@ -1,5 +1,5 @@
 # rag-doc-handler
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Unified document ingestion and parsing for rag-aio: MIME/type detection, a plugin
 parser registry, local/web loaders with SSRF protection, sitemap and site crawling,
@@ -8,7 +8,7 @@ stable content hashes, duplicate detection, and canonical `Document` output.
 `rag-doc-handler` consumes raw source bytes (a local file or a remote URL) and
 produces a `rag_core.documents.Document` — the same canonical model every downstream
 stage (chunking, embedding, indexing) operates on. It is the single front door of the
-data plane (see [architecture.md](../../architecture.md)): `rag-doc-handler → rag-ocr →
+data plane (see [architecture.md](https://github.com/omkumar01/rag-aio/blob/main/architecture.md)): `rag-doc-handler → rag-ocr →
 rag-embedder → rag-db-handler`.
 
 ## Installation

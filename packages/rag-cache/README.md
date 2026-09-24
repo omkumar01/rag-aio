@@ -1,5 +1,5 @@
 # rag-cache
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Multi-level caching for rag-aio stages (parsing, OCR, chunking, embeddings,
 retrieval, reranking, generation). Cache keys embed a content/config hash via

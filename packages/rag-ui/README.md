@@ -1,5 +1,5 @@
 # rag-ui
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Streamlit management and experimentation console for rag-aio. Provides a
 fault-tolerant HTTP client (`Dashboard`) to the FastAPI backend, a
@@ -404,5 +404,5 @@ No direct dependency on `rag-core`, `rag-orchestrator`, `rag-retrieval`, etc.
   surfaces aggregate counters (vector points, cache hit rate) that the
   Dashboard tab renders as `st.metric` widgets.
 
-See also [architecture.md](../../architecture.md) and the
-[FastAPI service contract](../../packages/rag-orchestrator/src/rag_orchestrator/app/app.py).
+See also [architecture.md](https://github.com/omkumar01/rag-aio/blob/main/architecture.md) and the
+[FastAPI service contract](https://github.com/omkumar01/rag-aio/blob/main/packages/rag-orchestrator/src/rag_orchestrator/app/app.py).

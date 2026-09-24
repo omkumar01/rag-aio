@@ -1,5 +1,5 @@
 # rag-embedder
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 End-to-end transformation from parsed documents to indexed representations: chunking
 strategies, model-native tokenization, embedding selection (FastEmbed default),
@@ -61,7 +61,7 @@ Within the monorepo, the package is installed as a workspace member alongside
 
 - **Zero new dependencies beyond the declared set.** No LangChain / LlamaIndex coupling;
   all vendor types are hidden behind `rag_core` protocols (see
-  [ADR-0002](../../adr/ADR-0002-protocol-based-contracts.md)).
+  [ADR-0002](https://github.com/omkumar01/rag-aio/blob/main/adr/ADR-0002-protocol-based-contracts.md)).
 - **No `rag-db-handler` import.** The package talks to vector stores through a
   duck-typed `rag_core.protocols.VectorStore` plus the local `SparseCapableStore`
   protocol. Any store implementing `upsert` / `search` works; sparse upserts are used

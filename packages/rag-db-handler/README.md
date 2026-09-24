@@ -1,5 +1,5 @@
 # rag-db-handler
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Unified persistence for rag-aio: SQL-backed document store, SQL/in-memory key/value
 stores, and a vector store adapter. Every backend is a thin adapter implementing one
@@ -470,6 +470,6 @@ Optional extras declared in `pyproject.toml`:
   without modifying them.
 
 Service boundary: `rag-db-handler` runs in-process for latency; the
-[architecture.md](../../architecture.md) notes that a FastAPI service wrapping these
+[architecture.md](https://github.com/omkumar01/rag-aio/blob/main/architecture.md) notes that a FastAPI service wrapping these
 adapters is the production scale path (ADR-0005), exposing `/health`, `/ready`,
 `/metrics`.

@@ -1,5 +1,5 @@
 # rag-eval
-> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
+> Part of the [rag-aio](https://github.com/omkumar01/rag-aio/blob/main/README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 First-class evaluation framework for rag-aio. Provides retrieval ranking
 metrics, generation-quality heuristics, LLM-as-judge adapters, dataset loaders
@@ -449,5 +449,5 @@ implemented from scratch in pure Python.
   `EvaluationResult` model for richer tables. The markdown report is
   human-readable by default (suitable for CI logs).
 
-See also [architecture.md](../../architecture.md) and the `rag-core` error
-taxonomy in [`rag_core/errors.py`](../../packages/rag-core/src/rag_core/errors.py).
+See also [architecture.md](https://github.com/omkumar01/rag-aio/blob/main/architecture.md) and the `rag-core` error
+taxonomy in [`rag_core/errors.py`](https://github.com/omkumar01/rag-aio/blob/main/packages/rag-core/src/rag_core/errors.py).
