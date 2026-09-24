@@ -4021,6 +4021,7 @@ source = { editable = "packages/rag-aio" }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "pydantic" },
     { name = "rag-cache" },
     { name = "rag-context" },
     { name = "rag-core" },
@@ -4045,6 +4046,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "pydantic", specifier = ">=2.7" },
     { name = "rag-cache", editable = "packages/rag-cache" },
     { name = "rag-context", editable = "packages/rag-context" },
     { name = "rag-core", editable = "packages/rag-core" },
@@ -4413,6 +4415,8 @@ name = "rag-orchestrator"
 version = "0.1.0"
 source = { editable = "packages/rag-orchestrator" }
 dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
     { name = "rag-cache" },
     { name = "rag-context" },
     { name = "rag-core" },
@@ -4439,7 +4443,9 @@ pydantic-ai = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.115" },
+    { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-ai", marker = "extra == 'pydantic-ai'", specifier = ">=0.2" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "rag-cache", editable = "packages/rag-cache" },
     { name = "rag-context", editable = "packages/rag-context" },
     { name = "rag-core", editable = "packages/rag-core" },

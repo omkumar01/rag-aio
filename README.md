@@ -17,7 +17,7 @@ from rag_aio import RAG
 
 async def main() -> None:
     rag = RAG.from_config("config.toml")
-    await rag.ingest("./documents")
+    await rag.ingest_directory("./documents")
     result = await rag.ask("What are the authentication requirements?")
     print(result.answer)
     print(result.citations)
