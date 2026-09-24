@@ -43,10 +43,18 @@ async def test_get_missing_returns_none(cache: Backend) -> None:
 
 
 @pytest.mark.parametrize("cache", BACKEND_IDS, indirect=True, ids=BACKEND_IDS)
-async def test_ttl_expiry(cache: Backend) -> None:
-    # Generous margin: 30ms was flaky under CI/coverage load.
-    await cache.set("k", b"v", ttl=0.05)
+async def test_ttl_not_expired_initially(cache: Backend) -> None:
+    # Long TTL: the immediate read must not race wall-clock under CI/coverage
+    # load (a 30-50ms TTL made this assertion flaky on loaded runners).
+    await cache.set("k", b"v", ttl=60)
     assert await cache.get("k") == b"v"
+
+
+@pytest.mark.parametrize("cache", BACKEND_IDS, indirect=True, ids=BACKEND_IDS)
+async def test_ttl_expiry(cache: Backend) -> None:
+    # Only verifies expiry: extra scheduling delay after the sleep makes the
+    # entry *more* expired, so this direction cannot race.
+    await cache.set("k", b"v", ttl=0.05)
     await asyncio.sleep(0.3)
     assert await cache.get("k") is None
 
