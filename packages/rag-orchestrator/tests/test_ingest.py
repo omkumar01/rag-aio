@@ -8,7 +8,7 @@ from rag_core.errors import ConfigError, IngestionError
 from rag_embedder.embedding import MockEmbedder, MockSparseEmbedder
 from rag_embedder.pipeline import EmbeddingPipeline
 from rag_orchestrator.config import PipelineConfig
-from rag_orchestrator.ingest import ingest, ingest_directory
+from rag_orchestrator.ingestion import ingest, ingest_directory
 from rag_orchestrator.services import OrchestratorServices
 
 

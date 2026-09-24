@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 import typer
-from rag_orchestrator import AskResult
 
 from rag_aio.config import RAGConfig
 from rag_aio.facade import RAG
@@ -63,6 +62,8 @@ def ask(
     """Ask a question through the RAG pipeline."""
     cfg = _load_config(config_path)
     rag = RAG.from_config(cfg)
+    from rag_orchestrator import AskResult  # lazy: facade validates presence first
+
     if stream:
 
         async def _stream() -> None:

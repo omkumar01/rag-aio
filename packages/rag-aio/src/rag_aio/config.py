@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 from rag_core.base import RagBaseModel
-from rag_orchestrator.config import PipelineConfig
+from rag_core.pipeline_config import PipelineConfig
 
 __all__ = ["EmbedderConfig", "GenerationConfig", "RAGConfig", "StorageConfig"]
 

@@ -162,7 +162,7 @@ async def test_e2e_lm_studio_ask(tmp_path: Path) -> None:
         pytest.skip("LM Studio not reachable at localhost:1234")
 
     from rag_orchestrator import load_local_services
-    from rag_orchestrator.ingest import ingest as _ingest
+    from rag_orchestrator.ingestion import ingest as _ingest
 
     pdf_path = _make_pdf(tmp_path / "manual.pdf")
     services = load_local_services(

@@ -395,7 +395,7 @@ No direct dependency on `rag-core`, `rag-orchestrator`, `rag-retrieval`, etc.
   JSON response. The UI's Ask tab renders `result["citations"]` and
   `result["timings_ms"]` directly.
 - **rag-mass-inject** — The backend's `/v1/ingest` endpoint calls
-  `rag_orchestrator.ingest.ingest()` for single-file ingestion. Bulk ingestion
+  `rag_orchestrator.ingestion.ingest()` for single-file ingestion. Bulk ingestion
   via `MassIngestor` is wired through the same `OrchestratorServices` bag; a
   mass-inject job's `JobTracker` SQLite DB can be inspected independently or
   surfaced through a future Dashboard page.

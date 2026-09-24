@@ -45,6 +45,17 @@ from .generation import FinishReason, GenerationRequest, GenerationResult, Messa
 from .ids import config_hash, content_hash, new_id, stable_id
 from .jobs import JobStatus, PipelineJob
 from .models_info import HealthState, ModelInfo, ProviderInfo, ProviderKind
+from .pipeline_config import (
+    ContextStage,
+    EmbeddingStage,
+    GenerationStage,
+    IngestionStage,
+    PipelineConfig,
+    RerankStage,
+    RetrievalStage,
+    StageConfig,
+    pipeline_schema_version,
+)
 from .queries import Query, QueryVariant, QueryVariantKind
 from .rerank import RerankHit
 from .retrieval import RetrievalHit, RetrievalResult
@@ -66,6 +77,7 @@ __all__ = [
     "Context",
     "ContextError",
     "ContextItem",
+    "ContextStage",
     "CrawlError",
     "Document",
     "DocumentAsset",
@@ -73,14 +85,17 @@ __all__ = [
     "DocumentPage",
     "Embedding",
     "EmbeddingError",
+    "EmbeddingStage",
     "EvaluationError",
     "EvaluationResult",
     "FinishReason",
     "GenerationError",
     "GenerationRequest",
     "GenerationResult",
+    "GenerationStage",
     "HealthState",
     "IngestionError",
+    "IngestionStage",
     "JobError",
     "JobStatus",
     "Message",
@@ -89,6 +104,7 @@ __all__ = [
     "OperationTimeout",
     "PageBlock",
     "ParseError",
+    "PipelineConfig",
     "PipelineJob",
     "ProviderError",
     "ProviderInfo",
@@ -103,12 +119,15 @@ __all__ = [
     "RateLimitError",
     "RerankError",
     "RerankHit",
+    "RerankStage",
     "RetrievalError",
     "RetrievalHit",
     "RetrievalResult",
+    "RetrievalStage",
     "Role",
     "SparseEmbedding",
     "SparseVector",
+    "StageConfig",
     "StorageError",
     "UnsupportedFormatError",
     "Usage",
@@ -116,6 +135,7 @@ __all__ = [
     "content_hash",
     "from_json",
     "new_id",
+    "pipeline_schema_version",
     "stable_id",
     "to_json",
 ]

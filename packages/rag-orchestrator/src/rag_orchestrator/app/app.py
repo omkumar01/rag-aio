@@ -18,7 +18,7 @@ from rag_core.ids import new_id
 from rag_core.jobs import JobStatus, PipelineJob
 
 from rag_orchestrator.config import PipelineConfig
-from rag_orchestrator.ingest import ingest as ingest_one
+from rag_orchestrator.ingestion import ingest as ingest_one
 from rag_orchestrator.orchestrator import AskResult, Orchestrator
 from rag_orchestrator.services import OrchestratorServices
 

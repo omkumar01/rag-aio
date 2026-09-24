@@ -12,30 +12,47 @@ Heavy backends (``fastembed``, ``qdrant-client``, ``rag_doc_handler`` parsers,
 
 from __future__ import annotations
 
+import importlib
 import inspect
 from collections.abc import AsyncIterator
 from pathlib import Path
+from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 from rag_core.documents import Document
 from rag_core.generation import GenerationRequest, GenerationResult, Usage
-from rag_orchestrator import (
-    AskResult,
-    NoOpObserver,
-    Orchestrator,
-    OrchestratorServices,
-)
-from rag_orchestrator import (
-    ingest as _ingest_document,
-)
-from rag_orchestrator.config import PipelineConfig
+from rag_core.pipeline_config import PipelineConfig
 
 from rag_aio.config import RAGConfig
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
+    from rag_orchestrator import AskResult, OrchestratorServices
 
 __all__ = ["RAG", "build_services"]
+
+
+# --------------------------------------------------------------------------- #
+# Lazy orchestrator access
+# --------------------------------------------------------------------------- #
+
+
+def _require_orchestrator() -> ModuleType:
+    """Import ``rag-orchestrator`` on first use with an actionable error.
+
+    The base ``rag-aio`` install is dependency-light (``rag-core`` + CLI/service
+    deps); the pipeline machinery lives behind the ``rag-orchestrator`` extra,
+    and the full stack behind ``all``.
+    """
+    try:
+        return importlib.import_module("rag_orchestrator")
+    except ImportError as exc:
+        msg = (
+            "rag-aio needs the 'rag-orchestrator' package for this feature. "
+            'Install it with: pip install "rag-aio[all]" '
+            'or pip install "rag-aio[rag-orchestrator]".'
+        )
+        raise ImportError(msg) from exc
 
 
 # --------------------------------------------------------------------------- #
@@ -100,16 +117,14 @@ def build_services(config: RAGConfig) -> OrchestratorServices:
     Selects the offline (mock) wiring when ``config.embedder.backend == "mock"``,
     otherwise delegates to :func:`rag_orchestrator.load_local_services`.
     """
+    if config.embedder.backend == "mock":
+        return _build_mock_services(config)
+
+    orchestrator = _require_orchestrator()
     from rag_observe import timed
 
-    if config.embedder.backend == "mock":
-        with timed("build_services", {"backend": "mock"}):
-            return _build_mock_services(config)
-
-    from rag_orchestrator import load_local_services
-
     with timed("build_services", {"backend": "fastembed"}):
-        return load_local_services(
+        return orchestrator.load_local_services(
             qdrant_path=config.storage.qdrant_path,
             db_url=config.storage.db_url,
             lm_studio_url=config.generation.base_url,
@@ -125,6 +140,10 @@ def _build_mock_services(config: RAGConfig) -> OrchestratorServices:
     :class:`HeuristicReranker`, and :class:`_StubGenerator`.
     """
     # All heavy imports live inside this function so ``import rag_aio`` stays light.
+    orchestrator = _require_orchestrator()
+    OrchestratorServices = orchestrator.OrchestratorServices
+    NoOpObserver = orchestrator.NoOpObserver
+
     from rag_cache.backends.memory import MemoryCache
     from rag_cache.stats import InstrumentedCache
     from rag_context.builder import ContextBuilderImpl
@@ -229,9 +248,10 @@ class RAG:
         services: OrchestratorServices,
         pipeline_config: PipelineConfig | None = None,
     ) -> None:
+        orchestrator = _require_orchestrator()
         self.services = services
         self._pipeline_config = pipeline_config
-        self._orchestrator = Orchestrator(services, pipeline_config)
+        self._orchestrator = orchestrator.Orchestrator(services, pipeline_config)
 
     # -- construction --------------------------------------------------------
 
@@ -251,8 +271,10 @@ class RAG:
 
     async def ingest(self, path: str | Path) -> Document:
         """Ingest a file through the orchestrator's stage-cached pipeline."""
+        orchestrator = _require_orchestrator()
         cfg = self._pipeline_config or PipelineConfig.local_default()
-        return await _ingest_document(self.services, str(path), config=cfg)
+        document: Document = await orchestrator.ingest(self.services, str(path), config=cfg)
+        return document
 
     async def ingest_directory(
         self,
@@ -260,10 +282,12 @@ class RAG:
         recursive: bool = False,
     ) -> list[Document]:
         """Ingest every supported file under *directory*."""
-        from rag_orchestrator import ingest_directory as _ingest_directory
-
+        orchestrator = _require_orchestrator()
         cfg = self._pipeline_config or PipelineConfig.local_default()
-        return await _ingest_directory(self.services, str(directory), recursive, config=cfg)
+        documents: list[Document] = await orchestrator.ingest_directory(
+            self.services, str(directory), recursive, config=cfg
+        )
+        return documents
 
     # -- query --------------------------------------------------------------
 
@@ -275,7 +299,10 @@ class RAG:
         overrides: dict[str, Any] | None = None,
     ) -> AskResult | AsyncIterator[str]:
         """Run the configured RAG pipeline for *query*."""
-        return await self._orchestrator.ask(query, stream=stream, overrides=overrides)
+        result: AskResult | AsyncIterator[str] = await self._orchestrator.ask(
+            query, stream=stream, overrides=overrides
+        )
+        return result
 
     # -- web app -----------------------------------------------------------
 
