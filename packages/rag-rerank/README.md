@@ -1,4 +1,5 @@
 # rag-rerank
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Second-stage relevance optimization for rag-aio, applied to small candidate sets
 (reranking is more expensive than first-stage retrieval). Provides batching, score
@@ -150,7 +151,7 @@ All three rerankers expose a uniform async interface:
 
 ### Endpoint auto-detection (`RemoteReranker`)
 
-`RemoteReranker` resolves the open question in [DECISIONS.md](DECISIONS.md) &mdash;
+`RemoteReranker` resolves the open question in [DECISIONS.md](../../DECISIONS.md) &mdash;
 the LM Studio / qwen3-reranker ambiguity. On the first rerank call it probes
 `POST {base_url}/rerank` with a Jina/Cohere-style body (`{model, query, documents}`):
 

@@ -1,4 +1,5 @@
 # rag-aio
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 The composition surface of the rag-aio platform: the `RAG` facade
 (`RAG.from_config("config.toml")` → `await rag.ingest(...)` → `await rag.ask(...)`), a

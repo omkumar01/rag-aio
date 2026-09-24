@@ -1,4 +1,5 @@
 # rag-eval
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 First-class evaluation framework for rag-aio. Provides retrieval ranking
 metrics, generation-quality heuristics, LLM-as-judge adapters, dataset loaders

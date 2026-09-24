@@ -1,4 +1,5 @@
 # rag-mass-inject
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 High-throughput bulk ingestion for rag-aio: discover sources from directories,
 file lists, sitemaps, or object-storage-style paths; stream them through

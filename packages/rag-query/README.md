@@ -1,7 +1,8 @@
 # rag-query
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Query-intelligence and retrieval-execution layer for the
-[rag-aio](https://github.com/rag-aio/rag-aio) platform.
+[rag-aio](https://github.com/omkumar01/rag-aio) platform.
 
 `rag-query` turns a raw user query into one or more retrieval-ready query
 variants and then fans those variants out across a pool of retrievers

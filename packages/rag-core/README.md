@@ -1,7 +1,8 @@
 # rag-core
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Canonical domain models and runtime-checkable Protocol contracts for the
-[rag-aio](https://github.com/rag-aio/rag-aio) platform. Every other package
+[rag-aio](https://github.com/omkumar01/rag-aio) platform. Every other package
 depends on `rag-core` — never the reverse.
 
 ## Overview
@@ -19,7 +20,7 @@ depends on `rag-core` — never the reverse.
   `Reranker`, `QueryStrategy`, `ContextBuilder`, `Generator`, `LLMProvider`,
   `EvaluationMetric`, `Observer`). Implementations depend on these abstractions,
   never on vendors or on each other's concrete classes (see
-  [ADR-0002](adr/ADR-0002-protocol-based-contracts.md)).
+  [ADR-0002](../../adr/ADR-0002-protocol-based-contracts.md)).
 * **Utility functions** -- deterministic identifiers and content hashes
   (`new_id`, `content_hash`, `stable_id`, `config_hash`).
 * **SerDe helpers** -- compact JSON round-trip helpers (`to_json`, `from_json`).
@@ -599,7 +600,7 @@ class RecallAtK:
 All "configuration" is expressed as Pydantic models (`RagBaseModel`) passed by
 value across protocol boundaries. The versioned, precedence-aware configuration
 system is owned by the orchestrator layer (see
-[ADR-0006](adr/ADR-0006-configuration-system.md)).
+[ADR-0006](../../adr/ADR-0006-configuration-system.md)).
 
 The models here are consumed by configuration objects in every downstream
 package (e.g. `RetrievalConfig`, `ContextConfig`, `IndexerConfig`).

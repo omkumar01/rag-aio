@@ -1,7 +1,8 @@
 # rag-llm-provider
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Provider and model management control layer for the
-[rag-aio](https://github.com/rag-aio/rag-aio) platform.
+[rag-aio](https://github.com/omkumar01/rag-aio) platform.
 
 `rag-llm-provider` owns the **control-plane** description of LLM providers and
 models: endpoint config, auth *references*, declared model metadata (roles,

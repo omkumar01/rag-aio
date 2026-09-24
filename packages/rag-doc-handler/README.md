@@ -1,4 +1,5 @@
 # rag-doc-handler
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Unified document ingestion and parsing for rag-aio: MIME/type detection, a plugin
 parser registry, local/web loaders with SSRF protection, sitemap and site crawling,

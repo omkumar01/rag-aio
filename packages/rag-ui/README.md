@@ -1,4 +1,5 @@
 # rag-ui
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Streamlit management and experimentation console for rag-aio. Provides a
 fault-tolerant HTTP client (`Dashboard`) to the FastAPI backend, a

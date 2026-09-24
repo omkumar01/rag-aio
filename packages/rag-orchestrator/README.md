@@ -1,4 +1,5 @@
 # rag-orchestrator
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Strategy and pipeline management, structured concurrency, and the FastAPI service
 surface for the rag-aio platform.

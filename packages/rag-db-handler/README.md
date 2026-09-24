@@ -1,4 +1,5 @@
 # rag-db-handler
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Unified persistence for rag-aio: SQL-backed document store, SQL/in-memory key/value
 stores, and a vector store adapter. Every backend is a thin adapter implementing one

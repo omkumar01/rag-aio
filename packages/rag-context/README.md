@@ -1,7 +1,8 @@
 # rag-context
+> Part of the [rag-aio](../../README.md) monorepo — see the root README for the platform overview, quickstart, and full documentation index.
 
 Context-engineering layer between retrieval and generation for the
-[rag-aio](https://github.com/rag-aio/rag-aio) platform.
+[rag-aio](https://github.com/omkumar01/rag-aio) platform.
 
 `rag-context` turns a list of :class:`~rag_core.retrieval.RetrievalHit` objects
 into a token-budgeted, citation-preserving :class:`~rag_core.context.Context`
