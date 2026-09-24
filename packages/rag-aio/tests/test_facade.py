@@ -22,6 +22,21 @@ def test_from_config_builds_services() -> None:
     assert rag.services.vector_store is not None
 
 
+def test_from_config_accepts_toml_path(tmp_path: Path) -> None:
+    """``from_config`` accepts a TOML path, matching the README quickstart."""
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        '[embedder]\nbackend = "mock"\n\n[pipeline.embedding]\npolicy = "mock"\n',
+        encoding="utf-8",
+    )
+
+    rag = RAG.from_config(config_file)
+    assert rag.services is not None
+
+    rag_from_str = RAG.from_config(str(config_file))
+    assert rag_from_str.services is not None
+
+
 def test_default_config_uses_fastembed_backend() -> None:
     """Non-mock backend requires real services; just verify the config."""
     cfg = RAGConfig()

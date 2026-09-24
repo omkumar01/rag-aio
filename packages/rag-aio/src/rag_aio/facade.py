@@ -236,8 +236,14 @@ class RAG:
     # -- construction --------------------------------------------------------
 
     @classmethod
-    def from_config(cls, config: RAGConfig) -> RAG:
-        """Build services from *config* and return a ready :class:`RAG`."""
+    def from_config(cls, config: RAGConfig | str | Path) -> RAG:
+        """Build services from *config* and return a ready :class:`RAG`.
+
+        *config* is a :class:`RAGConfig` or a path to a TOML config file, so the
+        README quickstart ``RAG.from_config("config.toml")`` works as written.
+        """
+        if not isinstance(config, RAGConfig):
+            config = RAGConfig.from_file(config)
         services = build_services(config)
         return cls(services, config.pipeline)
 
