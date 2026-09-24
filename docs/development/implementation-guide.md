@@ -74,7 +74,7 @@ orchestrator must call, gathered from each package's `__init__.py`:
 - `rag-observe` and `rag-cache` are **not** declared dependencies of `rag-embedder`,
   so the orchestrator must supply them to embedder/retrieval paths where optional.
 
-## 3. Wave 6 — rag-orchestrator (in progress) + contract review
+## 3. Wave 6 — rag-orchestrator + contract review (Done)
 
 The orchestrator agent is building this. Checklist of must-wires that tests will
 exercise:
@@ -103,7 +103,7 @@ exercise:
 six module `__init__.py` files above, diff against what the orchestrator imports, and
 file ADRs/fixes for any signature drift.
 
-## 4. Wave 7 — three parallel agents (after Wave 6 lands)
+## 4. Wave 7 — three parallel agents (done)
 
 ### 4.1 rag-mass-inject (`packages/rag-mass-inject/`)
 - `pyproject.toml` deps: rag-core, rag-doc-handler, rag-ocr, rag-embedder, rag-db-handler.
@@ -145,13 +145,13 @@ Wave 7 agents must run **two-at-a-time maximum** (rate-limit history): run mass-
 rag-aio facade together, then rag-ui alone, OR all three but expect a possible rate-limit
 retry on one. The repo-wide gate runs after all three.
 
-## 5. Wave 8 — hardening, examples, benchmarks, e2e, final review
+## 5. Wave 8 — hardening, examples, benchmarks, e2e, final review (Done)
 
 1. **Benchmarks** (`benchmarks/`): pytest-based custom harness (NOT pytest-benchmark to
    avoid a heavy dep) reporting mean/median/P50/P90/P95/P99 + cold/warm + RAM. Targets:
    doc throughput, embedding throughput, retrieval latency (dense/sparse/hybrid),
    rerank, context build, generation, full query. Use local LM Studio for generation
-   benchmarks (skip if unreachable) and InMemoryVectorStore/FAISS for retrieval benchmarks.
+   benchmarks (skip if unreachable) and InMemoryVectorStore for retrieval benchmarks.
 2. **Examples** (`examples/`): quickstart matching the README `RAG.from_config` snippet,
    per-stage examples, fully-local example, OpenAI-compatible example.
 3. **Security**: run a full Mimosa deep scan (`provider: mimosa:mimosa-security-scan`)
@@ -168,10 +168,10 @@ retry on one. The repo-wide gate runs after all three.
 
 ## 6. Acceptance checklist (spec §35/§36)
 
-- [ ] `scripts/check.py` fully green (ruff + mypy strict + full pytest, not just --fast).
-- [ ] `from rag_aio import RAG` quickstart works locally (FastEmbed + sqlite + LM Studio).
-- [ ] Dense/hybrid retrieval + rerank + context construction exercised.
-- [ ] ≥1 local or OpenAI-compatible LLM returns an answer with citations.
-- [ ] Streamlit console edits runtime config; pipeline inspector works.
-- [ ] Eval suite produces metrics; benchmark suite produces a report.
-- [ ] Clean-environment reproduction: `uv sync && uv run python scripts/check.py`.
+- [x] `scripts/check.py` fully green (ruff + mypy strict + full pytest, not just --fast).
+- [x] `from rag_aio import RAG` quickstart works locally (FastEmbed + sqlite + LM Studio).
+- [x] Dense/hybrid retrieval + rerank + context construction exercised.
+- [x] ≥1 local or OpenAI-compatible LLM returns an answer with citations.
+- [x] Streamlit console edits runtime config; pipeline inspector works.
+- [x] Eval suite produces metrics; benchmark suite produces a report.
+- [x] Clean-environment reproduction: `uv sync && uv run python scripts/check.py`.
