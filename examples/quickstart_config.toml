@@ -1,0 +1,12 @@
+# Fully-offline (mock) profile used by examples/quickstart.py.
+#
+# `embedder.backend = "mock"` makes RAG.from_config() wire the deterministic,
+# download-free mock stack (hash embeddings, in-memory vectors, stub generator).
+# `pipeline.embedding.policy = "mock"` tells downstream stages to expect mock
+# implementations. See examples/quickstart.py.
+
+[embedder]
+backend = "mock"
+
+[pipeline.embedding]
+policy = "mock"
