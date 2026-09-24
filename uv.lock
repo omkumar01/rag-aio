@@ -4328,6 +4328,8 @@ name = "rag-mass-inject"
 version = "0.1.0"
 source = { editable = "packages/rag-mass-inject" }
 dependencies = [
+    { name = "aiosqlite" },
+    { name = "httpx" },
     { name = "rag-core" },
     { name = "rag-db-handler" },
     { name = "rag-doc-handler" },
@@ -4335,14 +4337,35 @@ dependencies = [
     { name = "rag-ocr" },
 ]
 
+[package.optional-dependencies]
+test = [
+    { name = "rag-cache" },
+    { name = "rag-context" },
+    { name = "rag-llm-provider" },
+    { name = "rag-orchestrator" },
+    { name = "rag-query" },
+    { name = "rag-rerank" },
+    { name = "rag-retrieval" },
+]
+
 [package.metadata]
 requires-dist = [
+    { name = "aiosqlite", specifier = ">=0.20" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "rag-cache", marker = "extra == 'test'", editable = "packages/rag-cache" },
+    { name = "rag-context", marker = "extra == 'test'", editable = "packages/rag-context" },
     { name = "rag-core", editable = "packages/rag-core" },
     { name = "rag-db-handler", editable = "packages/rag-db-handler" },
     { name = "rag-doc-handler", editable = "packages/rag-doc-handler" },
     { name = "rag-embedder", editable = "packages/rag-embedder" },
+    { name = "rag-llm-provider", marker = "extra == 'test'", editable = "packages/rag-llm-provider" },
     { name = "rag-ocr", editable = "packages/rag-ocr" },
+    { name = "rag-orchestrator", marker = "extra == 'test'", editable = "packages/rag-orchestrator" },
+    { name = "rag-query", marker = "extra == 'test'", editable = "packages/rag-query" },
+    { name = "rag-rerank", marker = "extra == 'test'", editable = "packages/rag-rerank" },
+    { name = "rag-retrieval", marker = "extra == 'test'", editable = "packages/rag-retrieval" },
 ]
+provides-extras = ["test"]
 
 [[package]]
 name = "rag-observe"
@@ -4502,14 +4525,14 @@ version = "0.1.0"
 source = { editable = "packages/rag-ui" }
 dependencies = [
     { name = "httpx" },
-    { name = "rag-core" },
+    { name = "rag-aio" },
     { name = "streamlit" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
-    { name = "rag-core", editable = "packages/rag-core" },
+    { name = "rag-aio", editable = "packages/rag-aio" },
     { name = "streamlit", specifier = ">=1.37" },
 ]
 
