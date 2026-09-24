@@ -76,9 +76,19 @@ _MetadataProvider = Callable[[str], dict[str, Any]]
 
 def _default_metadata_provider(
     chunks: Sequence[Chunk],
+    document: Document | None = None,
 ) -> _MetadataProvider:
-    """Build a payload provider that enriches sparse/dense vectors with chunk metadata."""
+    """Build a payload provider that enriches sparse/dense vectors with chunk metadata.
+
+    The payload carries the chunk ``text`` and a nested ``metadata`` dict (with
+    document provenance) so that vector stores can rebuild fully-populated
+    :class:`~rag_core.retrieval.RetrievalHit` instances at query time.
+    """
     chunk_map = {c.id: c for c in chunks}
+    doc_meta = {
+        "source_uri": document.source_uri if document is not None else None,
+        "document_title": document.metadata.title if document is not None else None,
+    }
 
     def provider(chunk_id: str) -> dict[str, Any]:
         chunk = chunk_map.get(chunk_id)
@@ -98,6 +108,13 @@ def _default_metadata_provider(
             "token_count": m.token_count,
             "parent_chunk_id": m.parent_chunk_id,
             "language": m.language,
+            "text": chunk.text,
+            "metadata": {
+                "page_numbers": m.page_numbers,
+                "section_path": m.section_path,
+                "language": m.language,
+                **doc_meta,
+            },
         }
 
     return provider
@@ -225,7 +242,7 @@ class IngestionIndexer:
                     )
                 )
 
-        provider = metadata_provider or _default_metadata_provider(chunks)
+        provider = metadata_provider or _default_metadata_provider(chunks, document)
         indexer = VectorIndexer(store, self.config, provider)
         await indexer.index(embeddings, sparse_embeddings)
 
