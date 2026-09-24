@@ -124,10 +124,11 @@ Lightweight heuristic classifier evaluated in priority order:
 
 ```python
 from rag_query import classify_query
-classify_query("what is RAG?")            # QueryClass.question
+
+classify_query("what is RAG?")  # QueryClass.question
 classify_query("show me quarterly sales")  # QueryClass.navigational
-classify_query("rag")                     # QueryClass.keyword
-classify_query("explain retrieval")       # QueryClass.conversational
+classify_query("rag")  # QueryClass.keyword
+classify_query("explain retrieval")  # QueryClass.conversational
 ```
 
 ### `normalize_query(text, lowercase=False) -> str`
@@ -137,6 +138,7 @@ whitespace runs to a single space, and strips. Optionally lower-cases.
 
 ```python
 from rag_query import normalize_query
+
 normalize_query("  Hello\x00  World  ")  # "Hello World"
 normalize_query("Café", lowercase=True)  # "café"
 ```
@@ -176,6 +178,7 @@ hyde = HyDEStrategy(llm=MyAsyncGenerator())
 variants = await hyde.transform(Query(text="why do we need embeddings?"))
 
 from rag_query import ExpansionStrategy
+
 expander = ExpansionStrategy(count=3)
 variants = await expander.transform(Query(text="vector search performance"))
 ```
@@ -196,12 +199,14 @@ import asyncio
 from rag_core.queries import Query
 from rag_query import QueryConfig, QueryEngine
 
+
 async def main():
     engine = QueryEngine(QueryConfig())
     result = await engine.process(Query(text="rag vector search"))
-    print(result.query_class)   # "keyword"
-    print(result.variants)      # [original variant only]
+    print(result.query_class)  # "keyword"
+    print(result.variants)  # [original variant only]
     print(result.timings_ms)
+
 
 asyncio.run(main())
 ```
@@ -212,6 +217,7 @@ asyncio.run(main())
 import asyncio
 from rag_core.queries import Query
 from rag_query import QueryConfig, QueryEngine, ParallelRetrievalExecutor
+
 
 async def main():
     config = QueryConfig(expand=True, decompose=True, deterministic_only=True, max_variants=5)
@@ -225,6 +231,7 @@ async def main():
     all_hits = [hit for res in hits_per_form for hit in res.hits]
     print(f"{len(all_hits)} hits across {len(hits_per_form)} query forms")
 
+
 asyncio.run(main())
 ```
 
@@ -235,6 +242,7 @@ import asyncio
 from rag_core.queries import Query
 from rag_query import QueryConfig, QueryEngine, HyDEStrategy, ParallelRetrievalExecutor
 from my_llm import MyAsyncLLM
+
 
 async def main():
     # deterministic_only=False permits LLM strategies; HyDE requires one.
@@ -248,10 +256,13 @@ async def main():
     )
     llm = MyAsyncLLM()
     engine = QueryEngine(config, llm=llm)
-    result = await engine.process(Query(text="why is retrieval-augmented generation better than pure LLMs?"))
+    result = await engine.process(
+        Query(text="why is retrieval-augmented generation better than pure LLMs?")
+    )
 
     executor = ParallelRetrievalExecutor([vector_retriever], max_concurrency=2)
     hits_per_form = await executor.execute(result.query, result.variants, top_k=15)
+
 
 asyncio.run(main())
 ```
@@ -262,14 +273,18 @@ asyncio.run(main())
 from rag_core.protocols import QueryStrategy
 from rag_core.queries import Query, QueryVariant
 
+
 class EmojiStrategy(QueryStrategy):
     async def transform(self, query: Query) -> list[QueryVariant]:
-        return [QueryVariant(
-            query_id=query.id,
-            text=f"{query.text} 😀",
-            kind="expansion",
-            strategy="emoji",
-        )]
+        return [
+            QueryVariant(
+                query_id=query.id,
+                text=f"{query.text} 😀",
+                kind="expansion",
+                strategy="emoji",
+            )
+        ]
+
 
 engine = QueryEngine(QueryConfig(expand=True), strategies=[EmojiStrategy()])
 ```
@@ -284,12 +299,14 @@ works):
 from rag_core.base import to_json, from_json  # rag-core serde helpers
 from rag_query import QueryConfig
 
-config = QueryConfig.model_validate({
-    "expand": True,
-    "decompose": True,
-    "max_variants": 6,
-    "deterministic_only": False,
-})
+config = QueryConfig.model_validate(
+    {
+        "expand": True,
+        "decompose": True,
+        "max_variants": 6,
+        "deterministic_only": False,
+    }
+)
 ```
 
 | Consideration | Guidance |

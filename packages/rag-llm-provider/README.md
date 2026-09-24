@@ -114,8 +114,12 @@ config = ProvidersConfig(
             kind="openai",
             secret=SecretRef(kind="env", ref="OPENAI_API_KEY"),
             models=[
-                ModelConfig(model_id="gpt-4o", roles=["generate"],
-                            context_window=128000, capabilities=["vision"]),
+                ModelConfig(
+                    model_id="gpt-4o",
+                    roles=["generate"],
+                    context_window=128000,
+                    capabilities=["vision"],
+                ),
             ],
             default_models={"generate": "gpt-4o"},
         )
@@ -147,8 +151,10 @@ from rag_llm_provider import ProviderRegistry, RegistryHealth, HealthProbe
 registry = ProviderRegistry(config)
 provider = registry.get("openai")  # raises ConfigError if unknown
 
+
 class MyProbe(HealthProbe):
     async def probe(self, provider) -> HealthState: ...
+
 
 states = await RegistryHealth(registry).check_all(MyProbe())
 ```
@@ -239,25 +245,32 @@ print(decision.provider, decision.model_id)  # "lm-studio" "qwen3-8b"
 ```python
 import asyncio
 from rag_llm_provider import (
-    ProvidersConfig, ProviderConfig, ModelConfig, SecretRef,
-    ProviderRegistry, ModelRouter,
+    ProvidersConfig,
+    ProviderConfig,
+    ModelConfig,
+    SecretRef,
+    ProviderRegistry,
+    ModelRouter,
 )
 
-config = ProvidersConfig(providers=[
-    ProviderConfig(
-        name="openai",
-        kind="openai",
-        secret=SecretRef(kind="env", ref="OPENAI_API_KEY"),
-        models=[
-            ModelConfig(model_id="gpt-4o", roles=["generate"], capabilities=["vision"]),
-            ModelConfig(model_id="gpt-4o-mini", roles=["generate"], aliases=["mini"]),
-        ],
-        default_models={"generate": "gpt-4o-mini"},
-    )
-])
+config = ProvidersConfig(
+    providers=[
+        ProviderConfig(
+            name="openai",
+            kind="openai",
+            secret=SecretRef(kind="env", ref="OPENAI_API_KEY"),
+            models=[
+                ModelConfig(model_id="gpt-4o", roles=["generate"], capabilities=["vision"]),
+                ModelConfig(model_id="gpt-4o-mini", roles=["generate"], aliases=["mini"]),
+            ],
+            default_models={"generate": "gpt-4o-mini"},
+        )
+    ]
+)
 
 registry = ProviderRegistry(config)
 router = ModelRouter(registry, fallbacks={"generate": ["gpt-4o-mini", "gpt-4o"]})
+
 
 async def main():
     # explicit preference, capability-gated
@@ -269,6 +282,7 @@ async def main():
     d = await router.route("generate")
     print(d.provider, d.model_id, d.fallback_used)
 
+
 asyncio.run(main())
 ```
 
@@ -276,8 +290,12 @@ asyncio.run(main())
 
 ```python
 from rag_llm_provider import (
-    ProvidersConfig, ProviderConfig, ModelConfig, ProviderRegistry,
-    ModelRouter, expand_alias,
+    ProvidersConfig,
+    ProviderConfig,
+    ModelConfig,
+    ProviderRegistry,
+    ModelRouter,
+    expand_alias,
 )
 
 config = ProvidersConfig.local_default()

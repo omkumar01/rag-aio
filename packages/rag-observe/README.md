@@ -38,14 +38,21 @@ pip install rag-observe[console]   # ConsoleSpanExporter for dev
 
 ```python
 from rag_observe import (
-    ObservabilityHub,     # Observer protocol implementation
-    observe, timed,       # span context managers
-    StageTimer,           # dependency-free wall-clock timer
-    record_counter, record_histogram,  # OTel metric helpers (no-op w/o SDK)
-    get_logger,           # stdlib logger with JSON output
-    setup_logging, JSONFormatter, RedactingFilter,
-    redact, REDACTED, truncate_for_log,
-    set_correlation_id, get_correlation_id,
+    ObservabilityHub,  # Observer protocol implementation
+    observe,
+    timed,  # span context managers
+    StageTimer,  # dependency-free wall-clock timer
+    record_counter,
+    record_histogram,  # OTel metric helpers (no-op w/o SDK)
+    get_logger,  # stdlib logger with JSON output
+    setup_logging,
+    JSONFormatter,
+    RedactingFilter,
+    redact,
+    REDACTED,
+    truncate_for_log,
+    set_correlation_id,
+    get_correlation_id,
 )
 ```
 
@@ -171,8 +178,9 @@ Attribute values are automatically coerced to OTel-compatible primitives:
 * Everything else is `str(value)`-ified so real SDKs never reject the call.
 
 ```python
-with observe("parsing", {"model": "x", "n": 3, "ok": True,
-                          "tags": ["a", "b"], "status": SomeEnum.ok}):
+with observe(
+    "parsing", {"model": "x", "n": 3, "ok": True, "tags": ["a", "b"], "status": SomeEnum.ok}
+):
     ...
 # None values omitted; enum unwrapped; list coerced.
 ```
@@ -252,8 +260,8 @@ Caps long text to `max_chars` of content plus a `...[truncated]` suffix:
 ```python
 from rag_observe import truncate_for_log
 
-short = truncate_for_log("hello")                          # unchanged
-long_str = truncate_for_log("a" * 500, max_chars=200)     # 200 chars + "...[truncated]"
+short = truncate_for_log("hello")  # unchanged
+long_str = truncate_for_log("a" * 500, max_chars=200)  # 200 chars + "...[truncated]"
 ```
 
 #### Automatic document content suppression
@@ -282,9 +290,11 @@ from rag_observe import ObservabilityHub
 
 hub = ObservabilityHub()
 
+
 # Register an async listener
 async def on_event(event: str, attributes: dict | None) -> None:
     print(f"event: {event}, attrs: {attributes}")
+
 
 unsubscribe = hub.subscribe(on_event)
 
@@ -323,11 +333,13 @@ from rag_observe import observe, timed, setup_logging, get_logger
 setup_logging(level="INFO")
 logger = get_logger("pipeline")
 
+
 async def retrieve(query: str):
     with timed("retrieval", {"query": query[:50]}):
         # ... your retrieval logic ...
         logger.info("retrieval.complete", extra={"fields": {"hits": 5}})
         return [{"chunk_id": "c1", "score": 0.95}]
+
 
 asyncio.run(retrieve("what is authentication?"))
 ```
@@ -356,11 +368,16 @@ setup_logging(level="INFO")
 logger = get_logger("app")
 
 # The RedactingFilter runs on every handler and masks secret-looking keys:
-logger.info("llm.call", extra={"fields": {
-    "api_key": "sk-abc123def456",           # -> sk-aREDACTED
-    "Authorization": "Bearer xyz789",       # -> BeaREDACTED
-    "endpoint": "http://localhost:1234",   # kept as-is
-}})
+logger.info(
+    "llm.call",
+    extra={
+        "fields": {
+            "api_key": "sk-abc123def456",  # -> sk-aREDACTED
+            "Authorization": "Bearer xyz789",  # -> BeaREDACTED
+            "endpoint": "http://localhost:1234",  # kept as-is
+        }
+    },
+)
 # The original value "sk-abc123def456" never appears in any log line.
 ```
 
@@ -371,10 +388,12 @@ from rag_observe import ObservabilityHub
 
 hub = ObservabilityHub()
 
+
 async def audit_sink(event: str, attributes: dict | None) -> None:
     """Persist stage events to an audit log for compliance."""
     if event.startswith("retrieval"):
         await persist_audit_event(event, attributes)
+
 
 unsubscribe = hub.subscribe(audit_sink)
 
@@ -404,6 +423,7 @@ logger = get_logger("rag.pipeline")
 
 # 3. Now every observe()/timed() call produces real spans + metrics
 from rag_observe import observe
+
 with observe("generation", {"model": "qwen3.8-27b"}):
     ...
 # Spans flow to your OTLP collector automatically.
@@ -421,6 +441,7 @@ elapsed = timer.stop()
 
 # Still record metrics even without tracing:
 from rag_observe import record_histogram
+
 record_histogram("rag.custom.op.duration_ms", elapsed, {"op": "compute"})
 ```
 

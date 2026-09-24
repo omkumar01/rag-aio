@@ -52,15 +52,15 @@ uv pip install "rag-orchestrator[pydantic-ai]"  # optional query-generation stra
 ```python
 from rag_orchestrator import PipelineConfig, pipeline_schema_version
 
-config = PipelineConfig.local_default()           # sensible single-node local profile
-print(pipeline_schema_version)                    # "1.0"
+config = PipelineConfig.local_default()  # sensible single-node local profile
+print(pipeline_schema_version)  # "1.0"
 
 # Stage overrides fold into stage.overrides at wiring time.
 config = config.merge_overrides({"top_k": 25, "model": "gpt-4o-mini", "temperature": 0.0})
 
-config.retrieval.strategy                         # "rrf" | "dense" | "sparse" | ...
-config.retrieval.policy                           # "hybrid" | "dense" | ...
-config.generation.policy                          # "lm_studio" | "openai" | ...
+config.retrieval.strategy  # "rrf" | "dense" | "sparse" | ...
+config.retrieval.policy  # "hybrid" | "dense" | ...
+config.generation.policy  # "lm_studio" | "openai" | ...
 ```
 
 | Field            | Default | Meaning |
@@ -89,21 +89,24 @@ provider-specific options without fighting validation.
 
 ```python
 from rag_orchestrator import (
-    Pipeline, PipelineRegistry, default_pipeline, default_registry,
+    Pipeline,
+    PipelineRegistry,
+    default_pipeline,
+    default_registry,
 )
 
-pipeline = default_pipeline()                        # Pipeline from local_default()
-pipeline.save_yaml("pipelines/local.yaml")           # persist spec
+pipeline = default_pipeline()  # Pipeline from local_default()
+pipeline.save_yaml("pipelines/local.yaml")  # persist spec
 
 registry = default_registry()
 registry.add(pipeline, version="1.0")
 registry.add(Pipeline.from_config(custom_config), version="1.1")
-registry.get("local_fast")      # first match across versions
-registry.list()                 # all specs (cheap: identifiers only)
+registry.get("local_fast")  # first match across versions
+registry.list()  # all specs (cheap: identifiers only)
 registry.remove("local_fast", version="1.0")
-registry.save("pipelines/all.yaml")                # multi-doc YAML list
+registry.save("pipelines/all.yaml")  # multi-doc YAML list
 
-loaded = PipelineRegistry.load("pipelines/all.yaml") # round-trip back in
+loaded = PipelineRegistry.load("pipelines/all.yaml")  # round-trip back in
 Pipeline.load_yaml("pipelines/local.yaml")
 ```
 
@@ -115,11 +118,12 @@ supplied) and is intended for audit, not for reconstructing live objects.
 ```python
 from rag_orchestrator import Orchestrator, OrchestratorServices
 
-orchestrator = Orchestrator(services, pipeline_config)   # config optional -> local_default()
+orchestrator = Orchestrator(services, pipeline_config)  # config optional -> local_default()
 
 # Non-streaming: a fully-assembled AskResult.
-result = await orchestrator.ask("What are the auth requirements?",
-                                query_id="abc", correlation_id="abc")
+result = await orchestrator.ask(
+    "What are the auth requirements?", query_id="abc", correlation_id="abc"
+)
 result.answer, result.citations, result.timings_ms, result.metrics
 
 # Streaming: an async iterator of text deltas (same pipeline, SSE-friendly).
@@ -183,7 +187,7 @@ services = load_local_services(
     db_url="sqlite+aiosqlite:///./data/rag.db",
     lm_studio_url="http://localhost:1234/v1",
 )
-orchestrator = Orchestrator(services)    # picks up PipelineConfig.local_default()
+orchestrator = Orchestrator(services)  # picks up PipelineConfig.local_default()
 ```
 
 `load_local_services` wires the `local_default` profile against local backends and
@@ -198,7 +202,7 @@ wrapped in a `GenerationService`. (`rag-aio`'s `build_services` mirrors this for
 ```python
 from rag_orchestrator import ingest, ingest_directory
 
-document = await ingest(services, "./contracts.pdf")          # load -> parse -> dedup -> embed -> index
+document = await ingest(services, "./contracts.pdf")  # load -> parse -> dedup -> embed -> index
 docs = await ingest_directory(services, "./folder", recursive=True)
 ```
 
@@ -212,7 +216,7 @@ writes are gated by `cache_writes`. Unsupported formats raise
 ### FastAPI application
 
 ```python
-from rag_orchestrator import create_app      # resolved lazily via __getattr__
+from rag_orchestrator import create_app  # resolved lazily via __getattr__
 from fastapi import FastAPI
 
 app: FastAPI = create_app(services, pipeline_config)
@@ -241,14 +245,16 @@ the `fastapi` extra is installed.
 import asyncio
 from rag_orchestrator import Orchestrator, load_local_services
 
+
 async def main():
-    services = load_local_services()            # LM Studio + local Qdrant + FastEmbed
+    services = load_local_services()  # LM Studio + local Qdrant + FastEmbed
     orch = Orchestrator(services)
     result = await orch.ask("What are the authentication requirements?")
     print(result.answer)
     for c in result.citations:
         print(f"[{c.citation_id}] {c.source_uri or c.document_id}")
-    print(result.timings_ms)                     # per-stage wall-clock (ms)
+    print(result.timings_ms)  # per-stage wall-clock (ms)
+
 
 asyncio.run(main())
 ```
@@ -276,12 +282,17 @@ latency/cost dashboard without instrumenting the stages yourself.
 ```python
 from rag_orchestrator import PipelineConfig, Pipeline, PipelineRegistry
 
-cfg = PipelineConfig.local_default().model_copy(update={
-    "name": "research-heavy",
-    "retrieval": {"strategy": "rrf", "policy": "hybrid",
-                  "overrides": {"top_k": 25, "candidate_k": 100}},
-})
-spec = Pipeline.from_config(cfg, services=services)     # records component identifiers
+cfg = PipelineConfig.local_default().model_copy(
+    update={
+        "name": "research-heavy",
+        "retrieval": {
+            "strategy": "rrf",
+            "policy": "hybrid",
+            "overrides": {"top_k": 25, "candidate_k": 100},
+        },
+    }
+)
+spec = Pipeline.from_config(cfg, services=services)  # records component identifiers
 registry = PipelineRegistry()
 registry.add(spec, version="1.0")
 registry.save("pipelines/research.yaml")
@@ -332,7 +343,7 @@ policy = "lm_studio"
 strategy = "openai_compatible"
 [pipeline.generation.overrides]
 base_url = "http://localhost:1234/v1"
-model = "local-chat"
+model = "mistralai/ministral-3-3b"
 temperature = 0.2
 
 [pipeline.ingestion]

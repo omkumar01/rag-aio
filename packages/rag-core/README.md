@@ -41,12 +41,24 @@ Import everything from the top-level package:
 
 ```python
 from rag_core import (
-    Document, Chunk, Query, RetrievalHit, Context,
-    GenerationRequest, GenerationResult,
-    RagError, ConfigError, RetrievalError,
-    new_id, content_hash, config_hash, to_json, from_json,
+    Document,
+    Chunk,
+    Query,
+    RetrievalHit,
+    Context,
+    GenerationRequest,
+    GenerationResult,
+    RagError,
+    ConfigError,
+    RetrievalError,
+    new_id,
+    content_hash,
+    config_hash,
+    to_json,
+    from_json,
 )
 import rag_core
+
 print(rag_core.__version__)  # 0.1.0
 ```
 
@@ -159,12 +171,14 @@ from rag_core import Document, DocumentMetadata, DocumentPage, PageBlock, Boundi
 
 doc = Document(
     source_uri="s3://bucket/report.pdf",
-    metadata=DocumentMetadata(title="Q3 Report", mime_type="application/pdf",
-                              author="Analytics"),
+    metadata=DocumentMetadata(title="Q3 Report", mime_type="application/pdf", author="Analytics"),
     text="Executive summary ...",
     pages=[
-        DocumentPage(page_number=1, text="Executive summary",
-                     blocks=[PageBlock(page_id="p1", kind="text", text="...")]),
+        DocumentPage(
+            page_number=1,
+            text="Executive summary",
+            blocks=[PageBlock(page_id="p1", kind="text", text="...")],
+        ),
     ],
 )
 # content_hash is auto-derived from source_uri + text for stable deduplication
@@ -200,9 +214,7 @@ meta = ChunkMetadata(
 chunk = Chunk(document_id=doc.id, text="...", index=0, metadata=meta)
 # id is deterministic: stable_id(document_id, chunker, chunker_version, index, text)
 # Reconstructing with the same inputs always yields the same id:
-assert chunk.id == Chunk(
-    document_id=doc.id, text="...", index=0, metadata=meta
-).id
+assert chunk.id == Chunk(document_id=doc.id, text="...", index=0, metadata=meta).id
 ```
 
 | Field | Description |
@@ -216,8 +228,7 @@ assert chunk.id == Chunk(
 from rag_core import Embedding, SparseEmbedding
 
 dense = Embedding(chunk_id="c1", vector=[0.1, 0.2, 0.3], model="fastembed-BAAI")
-sparse = SparseEmbedding(chunk_id="c1", indices=[12, 45, 78],
-                         values=[0.9, 0.3, 0.7], model="bm25")
+sparse = SparseEmbedding(chunk_id="c1", indices=[12, 45, 78], values=[0.9, 0.3, 0.7], model="bm25")
 # dimension is auto-inferred from vector length
 assert dense.dimension == 3
 ```
@@ -238,9 +249,12 @@ hit = RetrievalHit(
     strategy_scores={"dense": 0.92},
     filters_applied={"tenant": "acme"},
 )
-result = RetrievalResult(query_id="q1", hits=[hit],
-                         strategies=["dense", "sparse"],
-                         timings_ms={"dense": 12.3, "sparse": 4.1})
+result = RetrievalResult(
+    query_id="q1",
+    hits=[hit],
+    strategies=["dense", "sparse"],
+    timings_ms={"dense": 12.3, "sparse": 4.1},
+)
 ```
 
 #### Rerank (`rerank.py`)
@@ -251,7 +265,7 @@ from rag_core import RerankHit
 reranked = RerankHit(
     chunk_id="c1",
     document_id="d1",
-    score=0.95,        # post-rerank score
+    score=0.95,  # post-rerank score
     rank=0,
     original_score=0.88,  # preserved pre-rerank signal
     original_rank=2,
@@ -264,9 +278,14 @@ reranked = RerankHit(
 from rag_core import Context, ContextItem, Citation
 
 item = ContextItem(
-    chunk_id="c1", document_id="d1", text="evidence ...",
-    token_count=45, citation_id="[1]", page_numbers=[3],
-    document_title="Report", source_uri="s3://bucket/report.pdf",
+    chunk_id="c1",
+    document_id="d1",
+    text="evidence ...",
+    token_count=45,
+    citation_id="[1]",
+    page_numbers=[3],
+    document_title="Report",
+    source_uri="s3://bucket/report.pdf",
 )
 ctx = Context(items=[item], token_budget=2048, strategy="relevance_first")
 assert ctx.total_tokens == 45
@@ -282,7 +301,12 @@ assert ctx.total_tokens == 45
 
 ```python
 from rag_core import (
-    GenerationRequest, GenerationResult, Message, Role, Usage, FinishReason,
+    GenerationRequest,
+    GenerationResult,
+    Message,
+    Role,
+    Usage,
+    FinishReason,
 )
 
 request = GenerationRequest(
@@ -362,8 +386,7 @@ provider = ProviderInfo(
     kind="openai_compatible",
     base_url="http://localhost:1234/v1",
     auth_ref="LMSTUDIO_API_KEY",  # env var name, never the value itself
-    models=[ModelInfo(model_id="qwen3.8-27b", provider="lmstudio",
-                       context_window=32768)],
+    models=[ModelInfo(model_id="qwen3.8-27b", provider="lmstudio", context_window=32768)],
 )
 # auth_ref is a reference (env var / secret file / keyring handle);
 # raw credentials never appear in this model, API responses, logs, or the UI.
@@ -410,9 +433,10 @@ All 22 protocols are `@runtime_checkable` and grouped by pipeline stage:
 # Implementing a protocol -- no inheritance needed:
 from rag_core import protocols
 
+
 class MyEmbedder:
-    async def embed(self, texts: Sequence[str]) -> list[list[float]]:
-        ...
+    async def embed(self, texts: Sequence[str]) -> list[list[float]]: ...
+
 
 # Runtime structural check:
 assert isinstance(MyEmbedder(), protocols.Embedder)
@@ -435,7 +459,7 @@ assert stable_id("doc1", "chunk", 0, "text") == stable_id("doc1", "chunk", 0, "t
 assert config_hash({"a": 1, "b": 2}) == config_hash({"b": 2, "a": 1})
 
 # Compact JSON round-trip
-serialized = to_json(doc)        # no whitespace
+serialized = to_json(doc)  # no whitespace
 restored = from_json(serialized, Document)
 assert restored == doc
 ```
@@ -446,10 +470,9 @@ assert restored == doc
 from rag_core import RagError, ConfigError, RetrievalError
 
 try:
-    raise RetrievalError("vector search failed", code="qdrant_down",
-                         details={"status_code": 503})
+    raise RetrievalError("vector search failed", code="qdrant_down", details={"status_code": 503})
 except RagError as e:
-    print(e.code)     # qdrant_down
+    print(e.code)  # qdrant_down
     print(e.details)  # {'status_code': 503}
 ```
 
@@ -479,8 +502,7 @@ doc = Document(
 ```python
 from rag_core import Query
 
-q = Query(text="What are the authentication requirements?",
-          filters={"tenant": "acme"}, top_k=5)
+q = Query(text="What are the authentication requirements?", filters={"tenant": "acme"}, top_k=5)
 # downstream stages read q.text, q.filters, q.top_k, q.deadline_s
 ```
 
@@ -511,10 +533,12 @@ from rag_core import RetrievalHit, RetrievalResult
 dense_results = RetrievalResult(query_id=q.id, hits=[...], strategies=["dense"])
 sparse_results = RetrievalResult(query_id=q.id, hits=[...], strategies=["bm25"])
 
+
 class RRF:
     def fuse(self, results, top_k: int) -> RetrievalResult:
         # merge by chunk_id, rank by reciprocal rank
         ...
+
 
 fused = RRF().fuse([dense_results, sparse_results], top_k=10)
 ```
@@ -528,8 +552,10 @@ from rag_core import protocols
 from rag_core.ids import config_hash
 import asyncio
 
+
 class CachedRetriever:
     """A Retriever that memoizes results in a Cache (protocol-based)."""
+
     def __init__(self, inner: protocols.Retriever, cache: protocols.Cache):
         self._inner = inner
         self._cache = cache
@@ -537,6 +563,7 @@ class CachedRetriever:
     async def retrieve(self, query: Query) -> RetrievalResult:
         from rag_core import to_json, from_json
         from rag_core.ids import config_hash
+
         key = f"retrieval:{config_hash({'text': query.text, 'top_k': query.top_k})}"
         cached = await self._cache.get(key)
         if cached is not None:
@@ -544,6 +571,7 @@ class CachedRetriever:
         result = await self._inner.retrieve(query)
         await self._cache.set(key, to_json(result).encode(), ttl=300)
         return result
+
 
 # Still satisfies the Retriever protocol:
 assert isinstance(CachedRetriever(...), protocols.Retriever)
@@ -554,8 +582,10 @@ assert isinstance(CachedRetriever(...), protocols.Retriever)
 ```python
 from rag_core import protocols, QueryEvaluation, MetricResult
 
+
 class RecallAtK:
     name = "recall@k"
+
     def compute(self, ground_truth, predictions, k=None):
         if k is None:
             k = len(predictions[0]) if predictions else 0

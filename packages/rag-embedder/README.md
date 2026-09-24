@@ -246,26 +246,37 @@ it records the key and returns `True`.
 import asyncio
 from rag_core.documents import Document
 from rag_embedder import (
-    ChunkerConfig, HFTokenizer, MockEmbedder, MockSparseEmbedder,
-    EmbeddingPipeline, create_chunker,
+    ChunkerConfig,
+    HFTokenizer,
+    MockEmbedder,
+    MockSparseEmbedder,
+    EmbeddingPipeline,
+    create_chunker,
 )
+
 
 # A real store is any duck-typed VectorStore; here we use a trivial in-memory one.
 class MemoryStore:
     def __init__(self):
         self.vectors = {}
         self.sparse = {}
+
     async def upsert(self, chunk_id, vector, payload, namespace=None):
         self.vectors[chunk_id] = vector
         self.payload = payload
+
     async def upsert_sparse(self, chunk_id, indices, values, namespace=None):
         self.sparse[chunk_id] = (indices, values)
+
     async def search(self, vector, top_k, filters=None, namespace=None):
         return []
+
     async def delete(self, chunk_ids, namespace=None):
         pass
+
     async def health(self):
         return True
+
 
 async def main():
     doc = Document(source_uri="test://doc", text="Your document text here ...")
@@ -277,6 +288,7 @@ async def main():
     )
     outcome = await pipeline.process(doc)
     print(outcome)
+
 
 asyncio.run(main())
 ```
@@ -317,7 +329,9 @@ chunks_cfg = ChunkerConfig(strategy="recursive", chunk_size=512, overlap=64)
 indexer_cfg = IndexerConfig(namespace="tenant-42")
 
 pipeline = EmbeddingPipeline(chunker, embedder, sparse, store=store, config=indexer_cfg)
-config_hash_str = config_hash({"chunker": chunks_cfg.model_dump(), "indexer": indexer_cfg.model_dump()})
+config_hash_str = config_hash(
+    {"chunker": chunks_cfg.model_dump(), "indexer": indexer_cfg.model_dump()}
+)
 
 seen: dict[str, str] = load_seen_map()  # persisted across runs
 for doc in documents:

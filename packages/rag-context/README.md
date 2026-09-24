@@ -136,8 +136,17 @@ tokenizer = ContextTokenizer(WhitespaceCounter())
 config = ContextConfig(strategy="relevance_first", token_budget=2048, reserve_for_answer=256)
 builder = ContextBuilderImpl(tokenizer, config)
 
-hits = [RetrievalHit(chunk_id="1", document_id="doc", score=0.95,
-                    normalized_score=0.95, rank=0, strategy="dense", text="...")]
+hits = [
+    RetrievalHit(
+        chunk_id="1",
+        document_id="doc",
+        score=0.95,
+        normalized_score=0.95,
+        rank=0,
+        strategy="dense",
+        text="...",
+    )
+]
 ctx = asyncio.run(builder.build(Query(text="what is rag?"), hits, token_budget=config.token_budget))
 
 print(render_context(ctx))
@@ -160,8 +169,8 @@ zero-dependency scenarios.
 from rag_context import ContextTokenizer, WhitespaceCounter
 
 tok = ContextTokenizer(WhitespaceCounter())
-tok.count("hello world foo")            # 3
-tok.truncate_to_tokens("a b c d", 2)    # "a b"
+tok.count("hello world foo")  # 3
+tok.truncate_to_tokens("a b c d", 2)  # "a b"
 
 # Wrap a HuggingFace tokenizer:
 # tok = ContextTokenizer(hf_tokenizer)
@@ -181,6 +190,7 @@ Two-pass deduplication:
 
 ```python
 from rag_context import dedupe_hits
+
 unique = dedupe_hits(hits, merge_overlapping=True, similarity_threshold=0.85)
 ```
 
@@ -194,9 +204,12 @@ primary results. `chunk_id`s already present are never duplicated.
 ```python
 from rag_context import expand_with_neighbors
 
+
 def neighbor_provider(chunk_id: str):
     # Return [(neighbor_chunk_id, neighbor_text, neighbor_index), ...]
     ...
+
+
 hits = expand_with_neighbors(hits, neighbor_provider, window=1)
 ```
 
@@ -215,6 +228,7 @@ ordered = order_by_strategy(items, "diversity")
 
 # Call a strategy function directly:
 from rag_context import relevance_first
+
 ordered = relevance_first(items)
 ```
 
@@ -246,6 +260,7 @@ length. Exported for direct use by callers that preprocess hits.
 
 ```python
 from rag_context import sanitize_item_text
+
 sanitize_item_text("raw\r\n\ttext", max_chars=5)  # "raw\n\ttex"
 ```
 
@@ -303,7 +318,8 @@ config = ContextConfig(
     max_per_document=2,
 )
 builder = ContextBuilderImpl(
-    ContextTokenizer(WhitespaceCounter()), config,
+    ContextTokenizer(WhitespaceCounter()),
+    config,
     neighbor_provider=lambda cid: neighbor_index.get(cid, []),
 )
 ctx = await builder.build(query, hits, token_budget=config.token_budget)
@@ -316,8 +332,10 @@ from rag_context import ContextBuilderImpl, ContextConfig, ContextTokenizer, Whi
 from rag_context.ordering import OrderFn, order_by_strategy, STRATEGIES
 from rag_core.context import ContextItem
 
+
 def my_strategy(items: list[ContextItem]) -> list[ContextItem]:
     return sorted(items, key=lambda i: i.token_count)
+
 
 STRATEGIES["shortest_first"] = my_strategy  # register
 ordered = order_by_strategy(items, "shortest_first")

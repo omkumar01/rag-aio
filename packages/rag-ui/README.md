@@ -80,10 +80,10 @@ facade, and `build_services`) plus `streamlit>=1.37` and `httpx>=0.27`.
 ## Public API
 
 ```python
-from rag_ui import __version__          # lazy; Streamlit not loaded
+from rag_ui import __version__  # lazy; Streamlit not loaded
 
 # Heavy module — loaded on demand (Streamlit pulled in only when accessed):
-from rag_ui.app import main           # lazily imports streamlit
+from rag_ui.app import main  # lazily imports streamlit
 from rag_ui.dashboard import Dashboard
 from rag_ui.config_view import (
     mask_secret,
@@ -102,11 +102,11 @@ from rag_ui.dashboard import Dashboard
 
 dash = Dashboard("http://localhost:8000", timeout=5.0)
 
-health = await dash.health()              # {"status": "ok"} or {"ok": False, "error": ...}
-ready  = await dash.ready()               # {"ready": True, "components": {...}}
-metrics = await dash.metrics()            # {"pipeline": ..., "vector_points": N, "cache": {...}}
-pipelines = await dash.list_pipelines()   # {"schema_version": ..., "pipelines": [...]}
-job = await dash.list_jobs("job-id")      # pipeline job record or error dict
+health = await dash.health()  # {"status": "ok"} or {"ok": False, "error": ...}
+ready = await dash.ready()  # {"ready": True, "components": {...}}
+metrics = await dash.metrics()  # {"pipeline": ..., "vector_points": N, "cache": {...}}
+pipelines = await dash.list_pipelines()  # {"schema_version": ..., "pipelines": [...]}
+job = await dash.list_jobs("job-id")  # pipeline job record or error dict
 ```
 
 Every method returns a parsed JSON `dict` on success or an error `dict` (with
@@ -121,7 +121,7 @@ result = await dash.ask("What are the auth requirements?")
 print(result["answer"])
 print(result["citations"])
 print(result["timings_ms"])
-print(result["metrics"])                   # includes "cached" flag
+print(result["metrics"])  # includes "cached" flag
 
 # With per-request overrides
 result = await dash.ask("What is RAG?", overrides={"top_k": 5, "temperature": 0.5})
@@ -141,7 +141,7 @@ it. The `[DONE]` sentinel terminates iteration.
 
 ```python
 result = await dash.ingest("/path/to/docs", recursive=True)
-print(result)   # {"content_hash": "...", "pages": 3, ...} or error dict
+print(result)  # {"content_hash": "...", "pages": 3, ...} or error dict
 ```
 
 ### config_view — TOML serialization and secret masking
@@ -151,16 +151,16 @@ from rag_aio.config import RAGConfig
 from rag_ui.config_view import mask_secret, dict_to_toml, validate_save_path
 
 # Mask a secret-by-reference env var name for display
-mask_secret("OPENAI_API_KEY")     # "•••••_KEY"
-mask_secret("ABCDE")              # "•••••"  (len <= keep+1)
-mask_secret(None)                 # "<unset>"
+mask_secret("OPENAI_API_KEY")  # "•••••_KEY"
+mask_secret("ABCDE")  # "•••••"  (len <= keep+1)
+mask_secret(None)  # "<unset>"
 
 # Serialize a config dict to TOML
 data = RAGConfig.mock().model_dump(mode="json")
 toml_text = dict_to_toml(data)
 
 # Validate a save path (rejects traversal, requires .toml in CWD or home)
-path = validate_save_path("./my_config.toml")   # returns Path or raises ValueError
+path = validate_save_path("./my_config.toml")  # returns Path or raises ValueError
 ```
 
 ### App entry points
@@ -172,7 +172,7 @@ from rag_ui.app import main, get_api_url, API_URL
 main()
 
 # Resolve the backend URL from env / st.secrets (with fallback to API_URL):
-url = get_api_url()   # checks API_URL env var, then st.secrets, then constant
+url = get_api_url()  # checks API_URL env var, then st.secrets, then constant
 ```
 
 The console app renders three tabs:
@@ -209,6 +209,7 @@ uv run rag-aio ui
 import asyncio
 from rag_ui.dashboard import Dashboard
 
+
 async def main():
     dash = Dashboard("http://localhost:8000", timeout=10.0)
 
@@ -228,6 +229,7 @@ async def main():
     job = await dash.list_jobs("some-job-id")
     print(f"status: {job.get('status')}")
 
+
 asyncio.run(main())
 ```
 
@@ -243,6 +245,7 @@ dash = Dashboard("https://rag.example.com", timeout=30.0)
 
 # Or inject a custom transport (e.g. for tests or a proxy)
 import httpx
+
 dash = Dashboard(
     "http://localhost:8000",
     timeout=5.0,
@@ -267,6 +270,7 @@ from rag_ui.dashboard import Dashboard
 
 dash = Dashboard("http://localhost:8000", timeout=30.0)
 
+
 async def main():
     stream = await dash.ask("Explain retrieval-augmented generation", stream=True)
     async for delta in stream:
@@ -275,6 +279,7 @@ async def main():
             break
         print(delta.get("delta", ""), end="", flush=True)
     print()
+
 
 asyncio.run(main())
 ```
@@ -285,12 +290,14 @@ asyncio.run(main())
 import httpx
 from rag_ui.dashboard import Dashboard
 
+
 def handler(request: httpx.Request) -> httpx.Response:
     if request.url.path == "/health":
         return httpx.Response(200, json={"status": "ok"})
     if request.url.path == "/v1/ask":
         return httpx.Response(200, json={"answer": "ok", "citations": [], "query_id": "q1"})
     return httpx.Response(404)
+
 
 dash = Dashboard("http://testserver", 5.0, transport=httpx.MockTransport(handler))
 
@@ -321,7 +328,7 @@ else:
     print(f"valid: {validated.generation.temperature}")
 
 # Mask for display
-print(mask_secret("MY_OPENAI_KEY"))   # "•••••_KEY"
+print(mask_secret("MY_OPENAI_KEY"))  # "•••••_KEY"
 
 # Save path is safe (no traversal, .toml only, within CWD or home)
 path = validate_save_path("./configs/run-1.toml")

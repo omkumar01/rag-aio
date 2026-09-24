@@ -44,11 +44,15 @@ pip install rag-cache[redis]
 
 ```python
 from rag_cache import (
-    CacheConfig, create_cache,          # typed config + factory
-    MemoryCache, DiskCache, SQLiteCache, # backends
-    NamespacedCache,                     # namespace prefix + get_or_set
-    CacheStats, InstrumentedCache,       # stats + wrapper
-    cache_key,                           # namespace:<sha256>
+    CacheConfig,
+    create_cache,  # typed config + factory
+    MemoryCache,
+    DiskCache,
+    SQLiteCache,  # backends
+    NamespacedCache,  # namespace prefix + get_or_set
+    CacheStats,
+    InstrumentedCache,  # stats + wrapper
+    cache_key,  # namespace:<sha256>
 )
 ```
 
@@ -155,7 +159,9 @@ assert cache_key("ns", a=1, b=2) == cache_key("ns", b=2, a=1)
 assert cache_key("ns1", a=1) != cache_key("ns2", a=1)
 
 # Pydantic models accepted as parts (canonicalized via model_dump)
-assert cache_key("ns", config=CacheConfig(backend="memory")) == cache_key("ns", config=CacheConfig(backend="memory"))
+assert cache_key("ns", config=CacheConfig(backend="memory")) == cache_key(
+    "ns", config=CacheConfig(backend="memory")
+)
 ```
 
 ### Configuration (`config.py`)
@@ -182,7 +188,9 @@ from rag_cache import CacheConfig
 mem = CacheConfig(backend="memory", max_items=1000, default_ttl=300)
 
 # Disk-backed for persistence across restarts
-disk = CacheConfig(backend="disk", directory="/var/cache/rag", max_bytes=1073741824, default_ttl=86400)
+disk = CacheConfig(
+    backend="disk", directory="/var/cache/rag", max_bytes=1073741824, default_ttl=86400
+)
 
 # SQLite for shared multi-process access
 db = CacheConfig(backend="sqlite", path="/var/cache/rag/cache.db", default_ttl=3600)
@@ -227,7 +235,7 @@ cache = MemoryCache(max_items=500, max_bytes=50_000_000, default_ttl=300)
 await cache.set("a", b"1")
 await cache.set("b", b"2")
 assert await cache.get("a") == b"1"  # "a" is now MRU
-await cache.set("c", b"3")           # if max_items=2, "b" is evicted
+await cache.set("c", b"3")  # if max_items=2, "b" is evicted
 
 # on_evict callback
 evicted = []
@@ -257,8 +265,8 @@ await cache.set("embeddings:abc123", b"...", ttl=600)
 val = await cache.get("embeddings:abc123")
 
 # Clear and size
-await cache.clear()      # removes entire directory tree, recreates empty
-n = await cache.size()   # counts files (excluding .tmp)
+await cache.clear()  # removes entire directory tree, recreates empty
+n = await cache.size()  # counts files (excluding .tmp)
 ```
 
 #### `SQLiteCache`
@@ -326,10 +334,13 @@ ns = NamespacedCache(MemoryCache(), "embeddings")
 
 # Async factory
 call_count = 0
+
+
 async def compute_embedding() -> bytes:
     global call_count
     call_count += 1
     return b"dense-vector-bytes"
+
 
 first = await ns.get_or_set("doc1-chunk3", compute_embedding)
 second = await ns.get_or_set("doc1-chunk3", compute_embedding)
@@ -343,12 +354,15 @@ assert value == b"config-bytes"
 
 # Failed factory is NOT cached -- retried on next call
 attempts = 0
+
+
 async def flaky() -> bytes:
     global attempts
     attempts += 1
     if attempts == 1:
         raise RuntimeError("upstream unavailable")
     return b"ok"
+
 
 try:
     await ns.get_or_set("k", flaky)  # raises, not cached
@@ -411,11 +425,15 @@ await evictable.set("b", b"2")
 await evictable.set("c", b"3")  # evicts "a"
 assert evictable.stats.evictions == 1
 
+
 # Errors are counted and propagated:
 class BrokenCache:
-    async def get(self, key): raise RuntimeError("boom")
+    async def get(self, key):
+        raise RuntimeError("boom")
+
     async def set(self, key, value, ttl=None): ...
     async def delete(self, key): ...
+
 
 ic = InstrumentedCache(BrokenCache())
 assert isinstance(ic, Cache)  # still satisfies the protocol
@@ -436,12 +454,14 @@ from rag_cache import MemoryCache
 
 cache = MemoryCache(max_items=1000, default_ttl=300)
 
+
 async def main():
     await cache.set("hello", b"world")
     val = await cache.get("hello")
     print(val)  # b"world"
     await cache.delete("hello")
     assert await cache.get("hello") is None
+
 
 asyncio.run(main())
 ```
@@ -453,9 +473,11 @@ from rag_cache import NamespacedCache, MemoryCache, cache_key
 
 cache = NamespacedCache(MemoryCache(), namespace="embeddings")
 
+
 async def get_or_compute(doc_id: str) -> bytes:
     key = f"doc:{doc_id}"  # NamespacedCache hashes this via cache_key
     return await cache.get_or_set(key, lambda: expensive_embedding_call(doc_id))
+
 
 # First call computes; second call returns cached
 result = await get_or_compute("doc1")
@@ -470,12 +492,14 @@ from rag_core import to_json
 import pickle
 
 # Disk-persisted cache -- survives process restarts
-disk_cache = create_cache(CacheConfig(
-    backend="disk",
-    directory="/var/cache/rag/embeddings",
-    max_bytes=2_000_000_000,  # 2 GB cap, LRU by mtime
-    default_ttl=86400,        # 24 hours
-))
+disk_cache = create_cache(
+    CacheConfig(
+        backend="disk",
+        directory="/var/cache/rag/embeddings",
+        max_bytes=2_000_000_000,  # 2 GB cap, LRU by mtime
+        default_ttl=86400,  # 24 hours
+    )
+)
 
 # Cache key includes model + content hash so config changes invalidate automatically
 key = cache_key("embeddings", model="fastembed-BAAI", text_hash="sha256:...")
@@ -503,18 +527,23 @@ result = await cache.get("retrieval:result:q1")
 ```python
 import asyncio
 from rag_cache import (
-    MemoryCache, DiskCache, SQLiteCache,
-    NamespacedCache, InstrumentedCache, CacheStats, cache_key,
+    MemoryCache,
+    DiskCache,
+    SQLiteCache,
+    NamespacedCache,
+    InstrumentedCache,
+    CacheStats,
+    cache_key,
 )
 
 # L1: fast memory, short TTL
 l1 = InstrumentedCache(MemoryCache(max_items=5000, default_ttl=60), CacheStats())
 # L2: disk persistence, longer TTL
-l2 = InstrumentedCache(DiskCache(directory="/var/cache/rag", default_ttl=3600),
-                       CacheStats())
+l2 = InstrumentedCache(DiskCache(directory="/var/cache/rag", default_ttl=3600), CacheStats())
 
 l1_ns = NamespacedCache(l1, "embeddings")
 l2_ns = NamespacedCache(l2, "embeddings")
+
 
 async def cached_compute(text: str) -> bytes:
     key = cache_key("embeddings", text=text, model="fastembed-BAAI")
@@ -536,6 +565,7 @@ async def cached_compute(text: str) -> bytes:
     await l1.set(key, val, ttl=60)
     await l2.set(key, val, ttl=3600)
     return val
+
 
 # Inspect stats after a workload
 async def report():
@@ -613,6 +643,7 @@ import pytest
 
 BACKENDS = ["memory", "disk", "sqlite"]
 
+
 @pytest.fixture(params=BACKENDS, ids=BACKENDS)
 def cache(request, tmp_path):
     if request.param == "memory":
@@ -620,6 +651,7 @@ def cache(request, tmp_path):
     if request.param == "disk":
         return DiskCache(directory=tmp_path / "disk")
     return SQLiteCache(path=tmp_path / "cache.db")
+
 
 @pytest.mark.parametrize("cache", BACKENDS, indirect=True, ids=BACKENDS)
 async def test_set_get_roundtrip(cache):

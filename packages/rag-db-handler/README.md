@@ -96,10 +96,10 @@ from rag_db_handler import (
     SQLStoreConfig,
     KeyValueStoreConfig,
     # factories
-    create_vector_store,   # -> VectorStore
-    create_sql_store,      # -> SQLDocumentStore (DocumentStore)
-    create_kv_store,       # -> KeyValueStore
-    resolve_env_secret,    # resolve an env-var secret reference
+    create_vector_store,  # -> VectorStore
+    create_sql_store,  # -> SQLDocumentStore (DocumentStore)
+    create_kv_store,  # -> KeyValueStore
+    resolve_env_secret,  # resolve an env-var secret reference
     # vector adapters
     QdrantVectorStore,
     InMemoryVectorStore,
@@ -124,28 +124,28 @@ from rag_db_handler import VectorStoreConfig, SQLStoreConfig, KeyValueStoreConfi
 
 # Vector store: local (embedded path) or server (url + optional api_key_ref)
 VectorStoreConfig(
-    backend="qdrant",            # Literal["qdrant"] — only backend today
-    mode="local",                # Literal["local", "server"] (ADR-0003)
-    path="./data/vectors",       # required in local mode
+    backend="qdrant",  # Literal["qdrant"] — only backend today
+    mode="local",  # Literal["local", "server"] (ADR-0003)
+    path="./data/vectors",  # required in local mode
     url="https://qdrant.example.com:6333",  # required in server mode
     api_key_ref="RAG_QDRANT_API_KEY",  # env var name (never stored on instance)
-    collection="rag_chunks",     # Qdrant collection name
-    vector_size=384,             # ge=1
-    distance="cosine",           # Literal["cosine", "euclid", "dot"]
+    collection="rag_chunks",  # Qdrant collection name
+    vector_size=384,  # ge=1
+    distance="cosine",  # Literal["cosine", "euclid", "dot"]
 )
 
 # SQL store (sqlite by default)
 SQLStoreConfig(
     url="sqlite+aiosqlite:///./data/rag.db",
-    pool_size=5,        # ge=0
-    max_overflow=10,    # ge=0
+    pool_size=5,  # ge=0
+    max_overflow=10,  # ge=0
     echo=False,
 )
 
 # Key/value store
 KeyValueStoreConfig(
-    backend="sqlite",   # Literal["sqlite", "memory"]
-    path=None,          # sqlite path override; falls back to default URL
+    backend="sqlite",  # Literal["sqlite", "memory"]
+    path=None,  # sqlite path override; falls back to default URL
     namespace="default",
 )
 ```
@@ -159,7 +159,7 @@ mode-specific combinations (e.g. local mode without `path`, server mode without 
 from rag_db_handler import create_vector_store, create_sql_store, create_kv_store
 
 vec: VectorStore = create_vector_store(VectorStoreConfig(...))
-docs: SQLDocumentStore = create_sql_store(SQLStoreConfig(...))      # a DocumentStore
+docs: SQLDocumentStore = create_sql_store(SQLStoreConfig(...))  # a DocumentStore
 kv: KeyValueStore = create_kv_store(KeyValueStoreConfig(...))
 ```
 
@@ -173,18 +173,19 @@ class QdrantVectorStore(VectorStore):
     def __init__(self, config: VectorStoreConfig) -> None: ...
 
     async def upsert(chunk_id, vector, payload, namespace=None) -> None: ...
-    async def upsert_many(items, namespace=None) -> None: ...   # list[(chunk_id, vector, payload)]
+    async def upsert_many(items, namespace=None) -> None: ...  # list[(chunk_id, vector, payload)]
     async def search(vector, top_k, filters=None, namespace=None) -> list[RetrievalHit]: ...
     async def delete(chunk_ids, namespace=None) -> None: ...
     async def count(namespace=None) -> int: ...
     async def health(self) -> bool: ...
     async def close(self) -> None: ...
-    async def ensure_collection(self) -> None: ...               # idempotent
+    async def ensure_collection(self) -> None: ...  # idempotent
     @property
     def collection(self) -> str: ...
 
+
 class InMemoryVectorStore(VectorStore):
-    def __init__(self, vector_size: int = 384) -> None: ...     # brute-force cosine sim
+    def __init__(self, vector_size: int = 384) -> None: ...  # brute-force cosine sim
 ```
 
 `upsert` derives point ids with `UUIDv5(NAMESPACE_DNS, f"{namespace}:{chunk_id}")`;
@@ -194,9 +195,9 @@ filter (and an in-memory guard in the fallback store).
 ### SQL stores
 
 ```python
-class SQLDocumentStore(SQLStore, DocumentStore):                 # documents table
+class SQLDocumentStore(SQLStore, DocumentStore):  # documents table
     async def init_db(self) -> None: ...
-    async def put(self, document: Document) -> None: ...        # on_conflict upsert by id
+    async def put(self, document: Document) -> None: ...  # on_conflict upsert by id
     async def get(self, document_id: str) -> Document | None: ...
     async def delete(self, document_id: str) -> None: ...
     async def find_by_hash(self, content_hash: str) -> Document | None: ...
@@ -204,15 +205,17 @@ class SQLDocumentStore(SQLStore, DocumentStore):                 # documents tab
     async def health(self) -> bool: ...
     async def close(self) -> None: ...
 
-class SQLKeyValueStore(SQLStore, KeyValueStore):                  # kv table
+
+class SQLKeyValueStore(SQLStore, KeyValueStore):  # kv table
     def __init__(self, config: SQLStoreConfig, namespace: str = "default") -> None: ...
     async def get(self, key: str) -> bytes | None: ...
-    async def set(self, key: str, value: bytes) -> None: ...    # upsert by (namespace, key)
+    async def set(self, key: str, value: bytes) -> None: ...  # upsert by (namespace, key)
     async def delete(self, key: str) -> None: ...
     async def health(self) -> bool: ...
 
-class SQLStore:                                                  # shared engine/base
-    async def init_db(self) -> None: ...                         # idempotent, cached
+
+class SQLStore:  # shared engine/base
+    async def init_db(self) -> None: ...  # idempotent, cached
     async def close(self) -> None: ...
     @property
     def config(self) -> SQLStoreConfig: ...
@@ -226,8 +229,8 @@ denormalized query columns (`content_hash`, `source_uri`, `tenant`, `namespace`,
 ### In-memory stores
 
 ```python
-InMemoryVectorStore(vector_size=384)            # cosine similarity, pure Python
-InMemoryKeyValueStore(namespace="default")      # dict-backed
+InMemoryVectorStore(vector_size=384)  # cosine similarity, pure Python
+InMemoryKeyValueStore(namespace="default")  # dict-backed
 ```
 
 ### Serialization helpers
@@ -236,8 +239,8 @@ InMemoryKeyValueStore(namespace="default")      # dict-backed
 from rag_db_handler import document_to_row_fields, row_to_document
 from rag_core.documents import Document
 
-fields = document_to_row_fields(doc)            # Document -> {id, content_hash, data, ...}
-doc = row_to_document({"data": json_str})       # {data: ...} -> Document (validates)
+fields = document_to_row_fields(doc)  # Document -> {id, content_hash, data, ...}
+doc = row_to_document({"data": json_str})  # {data: ...} -> Document (validates)
 ```
 
 ### Secrets
@@ -275,14 +278,17 @@ from rag_db_handler import VectorStoreConfig, create_vector_store
 cfg = VectorStoreConfig(mode="local", path="./data/vectors", collection="rag_chunks", vector_size=4)
 store = create_vector_store(cfg)
 
+
 async def main() -> None:
     await store.ensure_collection()
-    await store.upsert("chunk-1", [1.0, 0.0, 0.0, 0.0],
-                       {"document_id": "doc-1", "text": "alpha"}, namespace="ns")
+    await store.upsert(
+        "chunk-1", [1.0, 0.0, 0.0, 0.0], {"document_id": "doc-1", "text": "alpha"}, namespace="ns"
+    )
     hits = await store.search([1.0, 0.0, 0.0, 0.0], top_k=5, namespace="ns")
     print(hits[0].chunk_id, hits[0].text, hits[0].normalized_score)
     print("count:", await store.count("ns"))
     await store.close()
+
 
 asyncio.run(main())
 ```
@@ -296,10 +302,13 @@ from rag_db_handler import InMemoryVectorStore, InMemoryKeyValueStore
 vec = InMemoryVectorStore(vector_size=4)
 kv = InMemoryKeyValueStore(namespace="cache")
 
+
 async def main() -> None:
     await vec.upsert("a", [1.0, 0.0, 0.0, 0.0], {"text": "x"}, "ns")
     await kv.set("token", b"abc123")
     assert await kv.get("token") == b"abc123"
+
+
 asyncio.run(main())
 ```
 
@@ -309,17 +318,17 @@ asyncio.run(main())
 import os
 from rag_db_handler import VectorStoreConfig, create_vector_store
 
-os.environ["RAG_QDRANT_API_KEY"] = "..."   # secret lives in the environment only
+os.environ["RAG_QDRANT_API_KEY"] = "..."  # secret lives in the environment only
 
 cfg = VectorStoreConfig(
     mode="server",
     url="https://qdrant.example.com:6333",
-    api_key_ref="RAG_QDRANT_API_KEY",     # env var name, resolved at construction
+    api_key_ref="RAG_QDRANT_API_KEY",  # env var name, resolved at construction
     collection="rag_chunks",
     vector_size=768,
 )
-store = create_vector_store(cfg)           # fails fast if env var is unset
-print(repr(store))                       # QdrantVectorStore(collection='rag_chunks', mode='server')
+store = create_vector_store(cfg)  # fails fast if env var is unset
+print(repr(store))  # QdrantVectorStore(collection='rag_chunks', mode='server')
 ```
 
 Idempotency: re-upserting `(namespace, chunk_id)` overwrites the point because the
@@ -337,16 +346,21 @@ cfg = SQLStoreConfig(url="sqlite+aiosqlite:///./data/rag.db")
 docs = create_sql_store(cfg)
 kv = create_kv_store(KeyValueStoreConfig(backend="sqlite", namespace="cache"))
 
+
 async def main() -> None:
     await docs.init_db()
-    doc = Document(source_uri="file:///report.pdf", text="hello world",
-                   metadata=DocumentMetadata(title="Report"))
+    doc = Document(
+        source_uri="file:///report.pdf",
+        text="hello world",
+        metadata=DocumentMetadata(title="Report"),
+    )
     await docs.put(doc)
     assert (await docs.get(doc.id)).text == "hello world"
     assert await docs.find_by_hash(doc.content_hash) is not None
     await kv.set("k", b"v")
     assert await kv.get("k") == b"v"
     await docs.close()
+
 
 asyncio.run(main())
 ```
@@ -370,7 +384,8 @@ values produce a `MatchAny`:
 
 ```python
 hits = await store.search(
-    vector, top_k=10,
+    vector,
+    top_k=10,
     filters={"metadata.lang": "en", "document_id": ["d1", "d2"]},
     namespace="ns",
 )

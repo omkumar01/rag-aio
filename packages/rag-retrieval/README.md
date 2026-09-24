@@ -176,12 +176,14 @@ from rag_core.queries import Query
 from rag_db_handler.memory_store import InMemoryVectorStore
 from rag_retrieval import DenseRetriever, RetrievalConfig
 
+
 async def main():
     store = InMemoryVectorStore(vector_size=384)
     # ... upsert chunks via an embedder ...
 
     # MockEmbedder is fine for a demo; swap in FastEmbedDense for real vectors.
     from rag_embedder import MockEmbedder
+
     embedder = MockEmbedder(dim=384)
 
     retriever = DenseRetriever(store, embedder, RetrievalConfig(top_k=5))
@@ -189,6 +191,7 @@ async def main():
 
     for hit in result.hits:
         print(hit.rank, hit.chunk_id, hit.score, hit.text)
+
 
 asyncio.run(main())
 ```
@@ -200,10 +203,16 @@ import asyncio
 from rag_core.queries import Query
 from rag_db_handler.memory_store import InMemoryVectorStore
 from rag_retrieval import (
-    DenseRetriever, BM25Retriever, HybridRetriever,
-    ReciprocalRankFusion, RetrievalConfig, explain_result, attach_text,
+    DenseRetriever,
+    BM25Retriever,
+    HybridRetriever,
+    ReciprocalRankFusion,
+    RetrievalConfig,
+    explain_result,
+    attach_text,
 )
 from rag_embedder import MockEmbedder
+
 
 async def main():
     store = InMemoryVectorStore(vector_size=384)
@@ -229,6 +238,7 @@ async def main():
     # attach_text backfills hit.text from a chunk->text mapping/callable
     attach_text(result, {h.chunk_id: h.text for h in result.hits if h.text})
 
+
 asyncio.run(main())
 ```
 
@@ -236,8 +246,11 @@ asyncio.run(main())
 
 ```python
 from rag_retrieval import (
-    DenseRetriever, BM25Retriever, HybridRetriever,
-    WeightedScoreFusion, RetrievalConfig,
+    DenseRetriever,
+    BM25Retriever,
+    HybridRetriever,
+    WeightedScoreFusion,
+    RetrievalConfig,
 )
 
 cfg = RetrievalConfig(

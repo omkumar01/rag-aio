@@ -145,12 +145,12 @@ profile. `.dump_for_log()` returns a log-safe JSON dict.
 ```python
 tracker = JobTracker(checkpoint_dir)
 
-job_id = tracker.create(source="/data/docs", kind="mass_ingest")       # sync
-job: PipelineJob | None = await tracker.get(job_id)                     # async
+job_id = tracker.create(source="/data/docs", kind="mass_ingest")  # sync
+job: PipelineJob | None = await tracker.get(job_id)  # async
 jobs: list[PipelineJob] = await tracker.list()
 await tracker.update(job_id, status=JobStatus.running, progress=0.5)
 await tracker.checkpoint(job_id, source="/data/docs/a.pdf", content_hash="abc123")
-await tracker.is_checkpointed(job_id, "abc123")   # -> True
+await tracker.is_checkpointed(job_id, "abc123")  # -> True
 await tracker.dead_letter(job_id, "/data/docs/bad.bin", "cannot parse", "unsupported_format")
 ```
 
@@ -161,7 +161,7 @@ The checkpoint row uses `INSERT OR IGNORE` on the primary key
 
 ```python
 queue = BoundedQueue(maxsize=8)
-await queue.put(item)     # blocks if full → backpressure
+await queue.put(item)  # blocks if full → backpressure
 item = await queue.get()  # blocks if empty
 queue.task_done()
 await queue.join()
@@ -182,17 +182,17 @@ run without a gate.
 
 ```python
 # Local directory (flat or recursive)
-files = discover_directory("/data/reports", recursive=True)   # list[Path]
+files = discover_directory("/data/reports", recursive=True)  # list[Path]
 
 # File-list text file (one path/URL per line; '#' comments and blanks skipped)
-paths = discover_file_list("inputs.list")                       # list[str]
+paths = discover_file_list("inputs.list")  # list[str]
 
 # XML sitemap → list of <loc> URLs
 urls = await discover_sitemap("https://example.com/sitemap.xml")
 
 # Extension check
-is_supported("doc.pdf")   # True
-is_supported("doc.bin")   # False
+is_supported("doc.pdf")  # True
+is_supported("doc.bin")  # False
 ```
 
 `SUPPORTED_EXTENSIONS` is a frozenset of `.pdf`, `.txt`, `.md`, `.html`,
@@ -208,8 +208,9 @@ from rag_aio.config import RAGConfig
 from rag_aio.facade import build_services
 from rag_mass_inject import MassIngestor, MassInjectConfig
 
+
 async def main():
-    services = build_services(RAGConfig.mock())    # fully offline mock backends
+    services = build_services(RAGConfig.mock())  # fully offline mock backends
     config = MassInjectConfig.local_default()
     ingestor = MassIngestor(config, services)
 
@@ -221,6 +222,7 @@ async def main():
 
     job = await ingestor.status(job_id)
     print(f"status={job.status} progress={job.progress}")
+
 
 asyncio.run(main())
 ```
@@ -240,10 +242,10 @@ config = MassInjectConfig(
 
 ingestor = MassIngestor(config, services)
 job_id = ingestor.submit("/data/large_corpus")
-docs = await ingestor.wait(job_id)          # first pass: N documents
+docs = await ingestor.wait(job_id)  # first pass: N documents
 
 # Later — re-run the same job id; only new/changed files are processed.
-docs_again = await ingestor.wait(job_id)     # 0 documents (all checkpointed)
+docs_again = await ingestor.wait(job_id)  # 0 documents (all checkpointed)
 ```
 
 ### Advanced — tune per-stage concurrency and timeouts
@@ -253,12 +255,12 @@ config = MassInjectConfig(
     max_workers=16,
     recursive=True,
     concurrency={
-        "read": 16,    # I/O-bound, fan out
-        "parse": 4,    # CPU-bound (pymupdf)
-        "ocr": 2,      # GPU/heavy
+        "read": 16,  # I/O-bound, fan out
+        "parse": 4,  # CPU-bound (pymupdf)
+        "ocr": 2,  # GPU/heavy
         "chunk": 8,
-        "embed": 4,    # model-bound
-        "index": 8,    # DB writes
+        "embed": 4,  # model-bound
+        "index": 8,  # DB writes
     },
     timeout_s=3600.0,  # fail the job after 1 hour
     resume=True,

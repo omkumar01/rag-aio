@@ -87,15 +87,33 @@ uv add -e packages/rag-eval[parquet]   # or: pip install pyarrow
 ```python
 from rag_eval import (
     # ranking metrics
-    recall_at_k, precision_at_k, hit_rate, mrr, average_precision, ndcg,
-    METRICS, MetricFunc, compute_metric,
+    recall_at_k,
+    precision_at_k,
+    hit_rate,
+    mrr,
+    average_precision,
+    ndcg,
+    METRICS,
+    MetricFunc,
+    compute_metric,
     # generation metrics
-    citation_precision, citation_recall, answer_overlap, faithfulness_proxy,
-    JudgeVerdict, LLMJudge, OpenAICompatibleJudge,
+    citation_precision,
+    citation_recall,
+    answer_overlap,
+    faithfulness_proxy,
+    JudgeVerdict,
+    LLMJudge,
+    OpenAICompatibleJudge,
     # datasets
-    EvalCase, load_jsonl, save_jsonl, load_csv, load_parquet,
+    EvalCase,
+    load_jsonl,
+    save_jsonl,
+    load_csv,
+    load_parquet,
     # runner & report
-    EvalRunner, compare, format_report,
+    EvalRunner,
+    compare,
+    format_report,
     # version
     __version__,
 )
@@ -120,11 +138,11 @@ from rag_eval import recall_at_k, compute_metric, METRICS
 gt = ["doc-a", "doc-b"]
 pred = ["doc-c", "doc-a", "doc-d", "doc-b"]
 
-assert recall_at_k(gt, pred, k=3) == 0.5           # 1 of 2 relevant in top-3
-assert recall_at_k(gt, pred, k=4) == 1.0           # 2 of 2 in top-4
+assert recall_at_k(gt, pred, k=3) == 0.5  # 1 of 2 relevant in top-3
+assert recall_at_k(gt, pred, k=4) == 1.0  # 2 of 2 in top-4
 assert compute_metric("recall@3", gt, pred) == 0.5
-assert compute_metric("mrr", gt, pred) == 0.5       # first hit at rank 2
-assert METRICS["ndcg"](gt, pred, k=10) == 0.6509   # via registry
+assert compute_metric("mrr", gt, pred) == 0.5  # first hit at rank 2
+assert METRICS["ndcg"](gt, pred, k=10) == 0.6509  # via registry
 ```
 
 `compute_metric("nonexistent", ...)` raises `EvaluationError(code="unknown_metric")`;
@@ -136,11 +154,11 @@ assert METRICS["ndcg"](gt, pred, k=10) == 0.6509   # via registry
 from rag_eval import citation_precision, citation_recall, answer_overlap, faithfulness_proxy
 
 # Citation correctness
-citation_precision(["a", "b", "c"], {"a", "b"})   # 2/3 ≈ 0.667
-citation_recall({"a", "b", "c"}, ["a", "b"])      # 2/3 ≈ 0.667
+citation_precision(["a", "b", "c"], {"a", "b"})  # 2/3 ≈ 0.667
+citation_recall({"a", "b", "c"}, ["a", "b"])  # 2/3 ≈ 0.667
 
 # Groundedness proxies (no LLM needed)
-answer_overlap("the cat sat", ["the cat sat on the mat"])   # Jaccard ≈ 0.5
+answer_overlap("the cat sat", ["the cat sat on the mat"])  # Jaccard ≈ 0.5
 faithfulness_proxy("the cat sat on the mat", ["the dog sat on the mat"])  # 1/3
 ```
 
@@ -184,8 +202,8 @@ case = EvalCase(
 )
 
 # JSONL round-trip (per-line validation; blank lines skipped)
-save_jsonl([case], "out.jsonl", base_dir="/data/eval")   # filename confined to base_dir
-cases = load_jsonl("out.jsonl")                            # raises EvaluationError on bad line
+save_jsonl([case], "out.jsonl", base_dir="/data/eval")  # filename confined to base_dir
+cases = load_jsonl("out.jsonl")  # raises EvaluationError on bad line
 
 # CSV: columns query_id, query, relevant_ids (; separated), golden_answer
 cases = load_csv("cases.csv")
@@ -200,15 +218,17 @@ cases = load_parquet("cases.parquet")
 import asyncio
 from rag_eval import EvalRunner, format_report
 
+
 async def my_retriever(case: EvalCase):
     """Return an object with a ``hits`` attribute; each hit has a ``chunk_id``."""
     result = await some_hybrid_retrieval(case.query, top_k=10)
     return result  # e.g. rag_core.retrieval.RetrievalResult
 
+
 runner = EvalRunner(
     retriever_factory=my_retriever,
     metrics=["recall@10", "precision@10", "mrr", "ndcg@10", "hit_rate@10"],
-    k=10,                  # default cutoff for bare metric names
+    k=10,  # default cutoff for bare metric names
     dataset="my-corpus",
 )
 
@@ -237,8 +257,8 @@ relevant = ["chunk-3", "chunk-7"]
 retrieved = ["chunk-1", "chunk-3", "chunk-9", "chunk-7", "chunk-2"]
 
 print("Recall@10:", recall_at_k(relevant, retrieved))  # 1.0 (both found)
-print("nDCG@10:  ", ndcg(relevant, retrieved, k=10))   # 0.65
-print("MRR:      ", mrr(relevant, retrieved))          # 0.5 (first hit at rank 2)
+print("nDCG@10:  ", ndcg(relevant, retrieved, k=10))  # 0.65
+print("MRR:      ", mrr(relevant, retrieved))  # 0.5 (first hit at rank 2)
 ```
 
 ### Beginner — quick dataset from Python objects
@@ -247,10 +267,18 @@ print("MRR:      ", mrr(relevant, retrieved))          # 0.5 (first hit at rank 
 from rag_eval import EvalCase, save_jsonl
 
 cases = [
-    EvalCase(query_id="q1", query="What is RAG?", relevant_ids=["d1", "d2"],
-             golden_answer="Retrieval-Augmented Generation"),
-    EvalCase(query_id="q2", query="What is BM25?", relevant_ids=["d3"],
-             golden_answer="A sparse lexical retrieval algorithm"),
+    EvalCase(
+        query_id="q1",
+        query="What is RAG?",
+        relevant_ids=["d1", "d2"],
+        golden_answer="Retrieval-Augmented Generation",
+    ),
+    EvalCase(
+        query_id="q2",
+        query="What is BM25?",
+        relevant_ids=["d3"],
+        golden_answer="A sparse lexical retrieval algorithm",
+    ),
 ]
 save_jsonl(cases, "my_eval.jsonl", base_dir=".")
 ```
@@ -260,10 +288,12 @@ save_jsonl(cases, "my_eval.jsonl", base_dir=".")
 ```python
 from rag_eval import EvalRunner, compute_metric
 
+
 async def retrieve(case):
     # Plug in your RAG retriever — return anything with .hits (each .chunk_id)
     hits = await my_retriever.search(case.query, top_k=10)
     return type("R", (), {"hits": hits})()
+
 
 runner = EvalRunner(
     retriever_factory=retrieve,
@@ -286,16 +316,23 @@ for qe in result.per_query:
 ```python
 from rag_eval import OpenAICompatibleJudge
 
+
 class MyGenerator:
     async def generate(self, request):
         # Your OpenAI-compatible provider here
         return await openai_client.chat(...)
 
+
 judge = OpenAICompatibleJudge(generator=MyGenerator(), temperature=0.0)
 
 cases = [
-    EvalCase(query_id="q1", query="What is RAG?", relevant_ids=["d1"],
-             golden_answer="...", metadata={"context": "RAG = ...", "answer": "RAG = ..."}),
+    EvalCase(
+        query_id="q1",
+        query="What is RAG?",
+        relevant_ids=["d1"],
+        golden_answer="...",
+        metadata={"context": "RAG = ...", "answer": "RAG = ..."},
+    ),
 ]
 for case in cases:
     verdict = await judge.judge(

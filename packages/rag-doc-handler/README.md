@@ -111,22 +111,43 @@ src/rag_doc_handler/
 ```python
 from rag_doc_handler import (
     # detection
-    detect_extension, sniff_mime, guess_mime,
+    detect_extension,
+    sniff_mime,
+    guess_mime,
     # sources / loaders
-    LoadedSource, FileLoader, WebLoader, LoaderLimits, SourceLoader,
+    LoadedSource,
+    FileLoader,
+    WebLoader,
+    LoaderLimits,
+    SourceLoader,
     # security
     validate_public_url,
     # parsers + registry
-    BaseParser, ParserRegistry,
-    TextParser, HTMLParser, PDFParser, OCRFallback,
-    DocxParser, XlsxParser, PptxParser,
-    EmlParser, MsgParser, RtfParser, DoclingParser,
+    BaseParser,
+    ParserRegistry,
+    TextParser,
+    HTMLParser,
+    PDFParser,
+    OCRFallback,
+    DocxParser,
+    XlsxParser,
+    PptxParser,
+    EmlParser,
+    MsgParser,
+    RtfParser,
+    DoclingParser,
     # pipeline / dedup
-    IngestionPipeline, IngestionPipelineConfig, DedupIndex,
+    IngestionPipeline,
+    IngestionPipelineConfig,
+    DedupIndex,
     # crawling
-    SitemapCrawler, SiteCrawler, CrawlLimits,
+    SitemapCrawler,
+    SiteCrawler,
+    CrawlLimits,
     # convenience
-    default_registry, default_pipeline, parser_registry,
+    default_registry,
+    default_pipeline,
+    parser_registry,
     __version__,
 )
 ```
@@ -135,6 +156,7 @@ from rag_doc_handler import (
 
 ```python
 from rag_doc_handler import BaseParser, ParserRegistry
+
 
 class UpperCaseParser(BaseParser):
     @classmethod
@@ -147,10 +169,11 @@ class UpperCaseParser(BaseParser):
         # _stamp() writes parser_name/parser_version provenance for you
         return self._stamp(doc, "uppercase")
 
+
 registry = ParserRegistry()
-registry.register(UpperCaseParser)        # or: @registry.register as a decorator
-parser = registry.get(".upper")           # -> UpperCaseParser
-await parser.parse("note.upper", b"hi")   # -> Document with text "HI"
+registry.register(UpperCaseParser)  # or: @registry.register as a decorator
+parser = registry.get(".upper")  # -> UpperCaseParser
+await parser.parse("note.upper", b"hi")  # -> Document with text "HI"
 ```
 
 `ParserRegistry.get_or_none(key)` returns `None` instead of raising, enabling a
@@ -193,8 +216,8 @@ import httpx
 
 limits = CrawlLimits(max_pages=50, max_depth=2, max_concurrency=8)
 async with httpx.AsyncClient() as client:
-    pages = await SiteCrawler(client, limits).crawl("https://example.com")          # list[(url, bytes)]
-    urls  = await SitemapCrawler(client, limits).discover("https://example.com/sitemap.xml")
+    pages = await SiteCrawler(client, limits).crawl("https://example.com")  # list[(url, bytes)]
+    urls = await SitemapCrawler(client, limits).discover("https://example.com/sitemap.xml")
 ```
 
 ### Detection helpers
@@ -202,9 +225,9 @@ async with httpx.AsyncClient() as client:
 ```python
 from rag_doc_handler import detect_extension, sniff_mime, guess_mime
 
-detect_extension("https://x.com/a/p.pdf?q=1")   # -> ".pdf"
-sniff_mime(b"%PDF-1.4 ...")                    # -> "application/pdf"
-guess_mime("a.html", b"<html>...")             # sniffs first, then falls back to mimetypes
+detect_extension("https://x.com/a/p.pdf?q=1")  # -> ".pdf"
+sniff_mime(b"%PDF-1.4 ...")  # -> "application/pdf"
+guess_mime("a.html", b"<html>...")  # sniffs first, then falls back to mimetypes
 ```
 
 ## Usage Guides
@@ -215,14 +238,16 @@ guess_mime("a.html", b"<html>...")             # sniffs first, then falls back t
 import asyncio
 from rag_doc_handler import default_pipeline, DedupIndex
 
+
 async def main() -> None:
     pipeline = default_pipeline()
     dedup = DedupIndex()
     doc, is_new = await pipeline.ingest_file("/data/report.pdf", dedup=dedup)
     doc2, is_new2 = await pipeline.ingest_file("/data/report.pdf", dedup=dedup)
-    print(is_new, is_new2)                     # True False  (duplicate suppressed)
+    print(is_new, is_new2)  # True False  (duplicate suppressed)
     print(doc.content_hash == doc2.content_hash)
     print(doc.metadata.title, doc.parser_name)  # from PDF metadata / "pdf"
+
 
 asyncio.run(main())
 ```
@@ -233,8 +258,8 @@ asyncio.run(main())
 from rag_doc_handler import default_pipeline
 
 doc, _ = await default_pipeline().ingest("note.html", b"<h1>Hello</h1><p>World</p>")
-print(doc.text)                       # "Hello\nWorld"
-print(doc.pages[0].blocks[0].kind)    # "heading"
+print(doc.text)  # "Hello\nWorld"
+print(doc.pages[0].blocks[0].kind)  # "heading"
 ```
 
 ### Intermediate — fetch and parse a remote page (SSRF-safe)
@@ -243,12 +268,14 @@ print(doc.pages[0].blocks[0].kind)    # "heading"
 import asyncio, httpx
 from rag_doc_handler import WebLoader, LoaderLimits, default_registry, IngestionPipeline
 
+
 async def main() -> None:
     async with httpx.AsyncClient() as client:
         loader = WebLoader(client, LoaderLimits(max_bytes=5 * 1024 * 1024))
         pipeline = IngestionPipeline(default_registry(), loader)
         doc, _ = await pipeline.ingest("https://example.com/page.html")
         print(doc.text[:120])
+
 
 asyncio.run(main())
 ```
@@ -261,18 +288,27 @@ opt into localhost only).
 
 ```python
 import asyncio, httpx
-from rag_doc_handler import SiteCrawler, SitemapCrawler, CrawlLimits, default_pipeline, IngestionPipeline, WebLoader
+from rag_doc_handler import (
+    SiteCrawler,
+    SitemapCrawler,
+    CrawlLimits,
+    default_pipeline,
+    IngestionPipeline,
+    WebLoader,
+)
+
 
 async def main() -> None:
     limits = CrawlLimits(max_pages=50, max_depth=2, max_concurrency=8)
     async with httpx.AsyncClient() as client:
         # sitemap first (cheap, complete), then BFS crawl for discovery
-        urls   = await SitemapCrawler(client, limits).discover("https://example.com/sitemap.xml")
-        pages  = await SiteCrawler(client, limits).crawl("https://example.com")
+        urls = await SitemapCrawler(client, limits).discover("https://example.com/sitemap.xml")
+        pages = await SiteCrawler(client, limits).crawl("https://example.com")
         pipeline = IngestionPipeline(default_registry(), WebLoader(client))
         for url, bytes_ in pages:
-            doc, _ = await pipeline.ingest(url, bytes_)   # ingest bytes already in hand
+            doc, _ = await pipeline.ingest(url, bytes_)  # ingest bytes already in hand
             print(url, "->", doc.parser_name, len(doc.pages), "pages")
+
 
 asyncio.run(main())
 ```
@@ -280,8 +316,15 @@ asyncio.run(main())
 ### Advanced — register a custom parser and use a dedicated pipeline
 
 ```python
-from rag_doc_handler import BaseParser, ParserRegistry, IngestionPipeline, IngestionPipelineConfig, FileLoader
+from rag_doc_handler import (
+    BaseParser,
+    ParserRegistry,
+    IngestionPipeline,
+    IngestionPipelineConfig,
+    FileLoader,
+)
 from rag_core.documents import Document
+
 
 class CsvParser(BaseParser):
     @classmethod
@@ -290,15 +333,19 @@ class CsvParser(BaseParser):
 
     async def parse(self, source: str, data: bytes) -> Document:
         import asyncio
+
         rows = await asyncio.to_thread(lambda: data.decode("utf-8").splitlines())
         text = "\n".join(rows)
         doc = Document(source_uri=source, text=text)
         doc.pages = [DocumentPage(id=new_id(), page_number=1, text=text, blocks=[])]
         return self._stamp(doc, "csv")
 
+
 registry = ParserRegistry()
 registry.register(CsvParser())
-pipeline = IngestionPipeline(registry, FileLoader(), config=IngestionPipelineConfig(auto_detect=True))
+pipeline = IngestionPipeline(
+    registry, FileLoader(), config=IngestionPipelineConfig(auto_detect=True)
+)
 doc, _ = await pipeline.ingest_file("/data/numbers.csv")
 ```
 
@@ -311,10 +358,12 @@ behavior:
 ```python
 from rag_doc_handler import PDFParser
 
-async def fake_ocr(document_id, page_number, image_png):
-    return []   # no-op; real extractors return list[PageBlock]
 
-parser = PDFParser(ocr_fallback=fake_ocr, min_chars=0)   # force OCR on every page
+async def fake_ocr(document_id, page_number, image_png):
+    return []  # no-op; real extractors return list[PageBlock]
+
+
+parser = PDFParser(ocr_fallback=fake_ocr, min_chars=0)  # force OCR on every page
 ```
 
 ## Configuration

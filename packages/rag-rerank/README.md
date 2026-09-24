@@ -191,18 +191,44 @@ print(summary["ranks_changed"], "hits moved relative to first-stage order")
 import asyncio
 from rag_core import Query, RetrievalHit
 from rag_rerank import (
-    RerankConfig, HeuristicReranker, RerankPipeline, to_rerank_hits, explain,
+    RerankConfig,
+    HeuristicReranker,
+    RerankPipeline,
+    to_rerank_hits,
+    explain,
 )
 
 # Imagine these came back from DenseRetriever / HybridRetriever.
 candidates = [
-    RetrievalHit(chunk_id="a", document_id="d", score=0.2, normalized_score=0.2,
-                 rank=0, strategy="dense", text="apple banana"),
-    RetrievalHit(chunk_id="b", document_id="d", score=0.9, normalized_score=0.9,
-                 rank=1, strategy="dense", text="completely unrelated topic"),
-    RetrievalHit(chunk_id="c", document_id="d", score=0.5, normalized_score=0.5,
-                 rank=2, strategy="dense", text="cherry apple tart"),
+    RetrievalHit(
+        chunk_id="a",
+        document_id="d",
+        score=0.2,
+        normalized_score=0.2,
+        rank=0,
+        strategy="dense",
+        text="apple banana",
+    ),
+    RetrievalHit(
+        chunk_id="b",
+        document_id="d",
+        score=0.9,
+        normalized_score=0.9,
+        rank=1,
+        strategy="dense",
+        text="completely unrelated topic",
+    ),
+    RetrievalHit(
+        chunk_id="c",
+        document_id="d",
+        score=0.5,
+        normalized_score=0.5,
+        rank=2,
+        strategy="dense",
+        text="cherry apple tart",
+    ),
 ]
+
 
 async def main():
     reranker = HeuristicReranker(RerankConfig(top_k=2, normalize="minmax"))
@@ -212,6 +238,7 @@ async def main():
     print(explain(audit))
     for h in hits:
         print(h.rank, h.chunk_id, h.score, h.metadata["original_score"])
+
 
 asyncio.run(main())
 ```
@@ -240,6 +267,7 @@ invocations (thread-safe under an `asyncio.Lock`). For tests, inject a fake mode
 class FakeModel:
     def predict(self, pairs):
         return [0.9 if "apple" in text else 0.1 for _q, text in pairs]
+
 
 reranker = CrossEncoderReranker(
     model_name="fake",
@@ -276,9 +304,11 @@ async callable that matches the `Scorer` signature:
 ```python
 from rag_rerank import rerank_candidates, RerankConfig
 
+
 async def my_scorer(query: str, texts: list[str]) -> list[float]:
     # ... call your own relevance model ...
     return [float(sim(query, t)) for t in texts]
+
 
 hits = await rerank_candidates(
     query.text, candidates, my_scorer, RerankConfig(top_k=5, normalize="sigmoid")

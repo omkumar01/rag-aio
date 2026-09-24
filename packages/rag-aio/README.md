@@ -86,7 +86,7 @@ The facade surface:
 ```python
 from rag_aio import RAGConfig
 
-cfg = RAGConfig.mock()                 # fully offline profile (backend="mock")
+cfg = RAGConfig.mock()  # fully offline profile (backend="mock")
 cfg = RAGConfig.from_file("config.toml")  # your tuned profile (backend="fastembed")
 print(cfg.model_dump_json(indent=2))
 ```
@@ -105,7 +105,7 @@ from rag_aio import RAG, RAGConfig
 from rag_orchestrator import load_local_services
 
 cfg = RAGConfig.from_file("config.toml")
-services = build_services(cfg)           # mock wiring OR load_local_services(...)
+services = build_services(cfg)  # mock wiring OR load_local_services(...)
 rag = RAG(services, cfg.pipeline)
 ```
 
@@ -126,16 +126,16 @@ from rag_aio.facade import _StubGenerator
 from rag_core.generation import GenerationRequest
 
 stub = _StubGenerator()
-stub.requests        # list[GenerationRequest] captured so far
-result = await stub.generate(request)   # text derived from rendered prompt
+stub.requests  # list[GenerationRequest] captured so far
+result = await stub.generate(request)  # text derived from rendered prompt
 ```
 
 ### FastAPI service
 
 ```python
-from rag_aio.app import get_app, app        # app is a ready module-level instance
+from rag_aio.app import get_app, app  # app is a ready module-level instance
 
-application = get_app("config.toml")       # or get_app() -> mock profile
+application = get_app("config.toml")  # or get_app() -> mock profile
 ```
 
 `get_app(config_path=None)` loads a `RAGConfig` (mock defaults when `None`), wires
@@ -202,7 +202,7 @@ cache_backend = "memory"
 [generation]
 provider = "lm_studio"
 base_url = "http://localhost:1234/v1"
-model = "local-chat"
+model = "mistralai/ministral-3-3b"
 temperature = 0.2
 
 [pipeline]
@@ -229,6 +229,7 @@ import asyncio
 from rag_aio import RAG, RAGConfig
 from rag_orchestrator import create_app
 
+
 async def main():
     cfg = RAGConfig.from_file("config.toml")
     async with RAG.from_config(cfg) as rag:
@@ -239,6 +240,7 @@ async def main():
             overrides={"top_k": 25, "temperature": 0.0, "max_tokens": 256},
         )
         return result
+
 
 asyncio.run(main())
 ```
@@ -267,7 +269,7 @@ cache_path = "./data/cache.db"    # required only when cache_backend = "sqlite"
 [generation]
 provider = "lm_studio"          # informational name; base_url selects the wire format
 base_url = "http://localhost:1234/v1"
-model = "local-chat"
+model = "mistralai/ministral-3-3b"
 api_key_ref = "LM_STUDIO_API_KEY"   # env var name read at call time (optional)
 temperature = 0.2
 max_tokens = 512
@@ -288,7 +290,7 @@ candidate_k = 50
 ...
 [pipeline.generation.overrides]
 base_url = "http://localhost:1234/v1"
-model = "local-chat"
+model = "mistralai/ministral-3-3b"
 temperature = 0.2
 ```
 

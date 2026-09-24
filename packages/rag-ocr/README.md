@@ -102,19 +102,34 @@ src/rag_ocr/
 ```python
 from rag_ocr import (
     # models
-    OCRRegion, OCRPageResult, OCRResult, RegionKind,
+    OCRRegion,
+    OCRPageResult,
+    OCRResult,
+    RegionKind,
     # engines
-    OCREngine, RawLine, OCREngineUnavailable,
-    NullOCREngine, RapidOCREngine, aggregate_confidence,
+    OCREngine,
+    RawLine,
+    OCREngineUnavailable,
+    NullOCREngine,
+    RapidOCREngine,
+    aggregate_confidence,
     # routing
-    OCRRouter, OCRRouterConfig,
+    OCRRouter,
+    OCRRouterConfig,
     # semantic
-    VLMSemanticExtractor, classify_kind,
+    VLMSemanticExtractor,
+    classify_kind,
     # pipeline
-    OCRPipeline, regions_to_blocks,
+    OCRPipeline,
+    regions_to_blocks,
     # preprocess
-    PreprocessedPage, preprocess, denoise, deskew,
-    normalize_resolution, to_grayscale, image_to_bytes,
+    PreprocessedPage,
+    preprocess,
+    denoise,
+    deskew,
+    normalize_resolution,
+    to_grayscale,
+    image_to_bytes,
 )
 ```
 
@@ -174,10 +189,13 @@ class OCRRouterConfig(RagBaseModel):
     escalate_model: bool = True
     max_escalations_per_doc: int = 3
 
+
 class OCRRouter:
     def __init__(self, engines: list[OCREngine], semantic, config=None) -> None: ...
     async def process_page(self, document_id, page_number, image_bytes) -> OCRPageResult: ...
     async def process_document(self, document_id, pages) -> OCRResult: ...
+
+
 # Satisfies rag_core.protocols.OCRProcessor.
 ```
 
@@ -241,17 +259,21 @@ import asyncio, io
 from PIL import Image
 from rag_ocr import OCRRouter, OCRRouterConfig, OCRPipeline, NullOCREngine
 
+
 def _png() -> bytes:
     buf = io.BytesIO()
     Image.new("L", (16, 16), 255).save(buf, "PNG")
     return buf.getvalue()
 
+
 router = OCRRouter(engines=[NullOCREngine()], semantic=None)
 pipeline = OCRPipeline(router, preprocess_enabled=True, max_pages=200)
+
 
 async def main() -> None:
     result = await pipeline.process_images([(0, _png()), (1, _png())], document_id="doc-1")
     print(result.document_id, [p.page_number for p in result.pages])
+
 
 asyncio.run(main())
 ```
@@ -266,7 +288,7 @@ from rag_core.protocols import OCRProcessor
 from rag_ocr import OCRRouter, NullOCREngine
 
 router = OCRRouter(engines=[NullOCREngine()], semantic=None)
-assert isinstance(router, OCRProcessor)          # protocol conformance
+assert isinstance(router, OCRProcessor)  # protocol conformance
 page_result = await router.process_page("doc", 1, image_bytes)
 print(page_result.mean_confidence, page_result.engine)
 ```
@@ -276,14 +298,18 @@ print(page_result.mean_confidence, page_result.engine)
 ```python
 import asyncio
 from rag_ocr import (
-    OCRRouter, OCRRouterConfig, OCRPipeline, RapidOCREngine,
+    OCRRouter,
+    OCRRouterConfig,
+    OCRPipeline,
+    RapidOCREngine,
     VLMSemanticExtractor,
 )
 
 router = OCRRouter(
     engines=[RapidOCREngine()],
     semantic=VLMSemanticExtractor(
-        base_url="http://localhost:1234/v1", model="glm-ocr",
+        base_url="http://localhost:1234/v1",
+        model="glm-ocr",
         api_key_ref="RAG_VLM_API_KEY",  # env var, resolved per call
     ),
     config=OCRRouterConfig(confidence_threshold=0.7, min_lines=1, max_escalations_per_doc=3),
@@ -305,6 +331,7 @@ import json
 import httpx
 from rag_ocr import VLMSemanticExtractor, OCRRegion
 
+
 class _FakeTransport(httpx.AsyncBaseTransport):
     async def handle_async_request(self, req):
         payload = {
@@ -312,6 +339,7 @@ class _FakeTransport(httpx.AsyncBaseTransport):
         }
         body = json.dumps(payload).encode()
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
 
 vlm = VLMSemanticExtractor(transport=_FakeTransport(), api_key_ref=None)
 regions = await vlm.extract(page_bytes)
@@ -327,12 +355,14 @@ router. Recognition must run off the loop:
 import asyncio
 from rag_ocr import OCREngine, RawLine
 
+
 class MyEngine:
     name = "mine"
+
     async def recognize(self, image_bytes: bytes) -> list[RawLine]:
         return await asyncio.to_thread(self._sync, image_bytes)
-    def _sync(self, image_bytes: bytes) -> list[RawLine]:
-        ...
+
+    def _sync(self, image_bytes: bytes) -> list[RawLine]: ...
 ```
 
 ### Advanced — project into canonical `PageBlock`s with provenance

@@ -104,15 +104,15 @@ from rag_core.models_info import ProviderKind
 
 # Build a single provider. base_url may be None for providers with a known default.
 provider = create_provider(
-    kind="openai",                      # "openai" | "anthropic" | "gemini" |
-                                         #  "openai_compatible" | "ollama" | "vllm" | "llamacpp"
-    base_url=None,                      # None -> provider default (e.g. api.openai.com)
+    kind="openai",  # "openai" | "anthropic" | "gemini" |
+    #  "openai_compatible" | "ollama" | "vllm" | "llamacpp"
+    base_url=None,  # None -> provider default (e.g. api.openai.com)
     api_key_provider=lambda: __import__("os").environ.get("OPENAI_API_KEY"),
-    supports_json_schema=True,          # OpenAI-compatible only; gates json_schema vs json_object
+    supports_json_schema=True,  # OpenAI-compatible only; gates json_schema vs json_object
 )
 
 # Resolve a kind to its adapter class (vllm/llamacpp -> OpenAICompatibleProvider).
-GeneratorRegistry.provider_class("vllm")   # -> OpenAICompatibleProvider
+GeneratorRegistry.provider_class("vllm")  # -> OpenAICompatibleProvider
 ```
 
 ### HTTP client
@@ -124,14 +124,15 @@ custom providers:
 import httpx
 from rag_generation import ProviderHttpClient
 
-async def handler(req: httpx.Request) -> httpx.Response:
-    ...  # return an httpx.Response
+
+async def handler(req: httpx.Request) -> httpx.Response: ...  # return an httpx.Response
+
 
 client = ProviderHttpClient(
     base_url="https://api.my-provider.com/v1",
-    api_key_provider=lambda: "env-token",   # resolved per request
+    api_key_provider=lambda: "env-token",  # resolved per request
     timeout_s=60.0,
-    transport=httpx.MockTransport(handler), # injectable for tests
+    transport=httpx.MockTransport(handler),  # injectable for tests
 )
 
 data = await client.post_json("/chat/completions", {"model": "x", "messages": []})
@@ -160,19 +161,22 @@ from rag_core.generation import GenerationRequest, Message
 lm_studio = OpenAICompatibleProvider(base_url="http://localhost:1234/v1")
 openai = OpenAIProvider(api_key_provider=lambda: os.environ["OPENAI_API_KEY"])
 
+
 def router(request: GenerationRequest) -> str | None:
     # Route by model name, cost, or capability — returning a registered provider name.
     return "openai" if request.model and "gpt" in request.model else None
 
+
 async def on_usage(result) -> None:
     print(result.usage and result.usage.total_tokens)
+
 
 service = GenerationService(
     providers={"lm_studio": lm_studio, "openai": openai},
     router=router,
     max_retries=3,
     backoff_base=0.5,
-    fallback_names=["openai"],     # tried when the primary chain is exhausted
+    fallback_names=["openai"],  # tried when the primary chain is exhausted
     on_usage=on_usage,
 )
 
@@ -182,7 +186,7 @@ request = GenerationRequest(
     temperature=0.2,
     max_tokens=128,
 )
-result = await service.generate(request)        # -> GenerationResult
+result = await service.generate(request)  # -> GenerationResult
 print(result.text, result.finish_reason, result.usage)
 ```
 
@@ -193,7 +197,7 @@ print(result.text, result.finish_reason, result.usage)
 stream = await service.generate(
     GenerationRequest(messages=[Message(role="user", content="Write a haiku.")]),
     provider_name="lm_studio",
-    model="local-chat",
+    model="mistralai/ministral-3-3b",
 )
 # GenerationService exposes the provider's native stream through the orchestrator's
 # Generator shim; for direct adapter streaming see the usage guide below.
@@ -207,8 +211,8 @@ from rag_core.generation import GenerationRequest, Message
 
 provider = OpenAICompatibleProvider(base_url="http://localhost:1234/v1")
 request = GenerationRequest(messages=[Message(role="user", content="Hello")])
-delta_stream = provider.stream(request)        # AsyncIterator[str]
-text = await collect_stream(delta_stream)      # -> str
+delta_stream = provider.stream(request)  # AsyncIterator[str]
+text = await collect_stream(delta_stream)  # -> str
 ```
 
 ## Usage Guides
@@ -225,14 +229,16 @@ from rag_core.generation import GenerationRequest, Message
 
 service = GenerationService({"lm_studio": OpenAICompatibleProvider()})
 
+
 async def main():
     req = GenerationRequest(
         messages=[Message(role="user", content="What is the capital of France?")],
-        model="local-chat",
+        model="mistralai/ministral-3-3b",
     )
     result = await service.generate(req)
-    print(result.text)            # the answer
-    print(result.finish_reason)   # "stop" | "length" | ...
+    print(result.text)  # the answer
+    print(result.finish_reason)  # "stop" | "length" | ...
+
 
 asyncio.run(main())
 ```
@@ -245,19 +251,21 @@ from pydantic import BaseModel, Field as PydanticField
 from rag_core.generation import GenerationRequest, Message
 from rag_generation import GenerationService, OpenAICompatibleProvider
 
+
 class Summary(BaseModel):
     title: str
     bullets: list[str] = PydanticField(default_factory=list)
 
+
 provider = OpenAICompatibleProvider(
     base_url="http://localhost:1234/v1",
-    supports_json_schema=True,   # sends response_format=json_schema; else json_object fallback
+    supports_json_schema=True,  # sends response_format=json_schema; else json_object fallback
 )
 service = GenerationService({"lm_studio": provider})
 
 req = GenerationRequest(
     messages=[Message(role="user", content="Summarize quantum computing.")],
-    model="local-chat",
+    model="mistralai/ministral-3-3b",
     json_schema=Summary.model_json_schema(),
 )
 result = await service.generate(req)
@@ -283,15 +291,18 @@ iteration. Malformed lines are skipped, so a single bad SSE frame never aborts a
 ```python
 import os
 from rag_generation import (
-    GenerationService, OpenAICompatibleProvider, OpenAIProvider,
-    AnthropicProvider, GeminiProvider,
+    GenerationService,
+    OpenAICompatibleProvider,
+    OpenAIProvider,
+    AnthropicProvider,
+    GeminiProvider,
 )
 
 providers = {
     "lm_studio": OpenAICompatibleProvider(base_url="http://localhost:1234/v1"),
-    "openai":    OpenAIProvider(api_key_provider=lambda: os.environ["OPENAI_API_KEY"]),
+    "openai": OpenAIProvider(api_key_provider=lambda: os.environ["OPENAI_API_KEY"]),
     "anthropic": AnthropicProvider(api_key_provider=lambda: os.environ["ANTHROPIC_API_KEY"]),
-    "gemini":    GeminiProvider(api_key_provider=lambda: os.environ["GEMINI_API_KEY"]),
+    "gemini": GeminiProvider(api_key_provider=lambda: os.environ["GEMINI_API_KEY"]),
 }
 
 service = GenerationService(
@@ -310,7 +321,7 @@ result = await service.generate(request, provider_name="openai")
 ### Advanced: provider discovery via `list_models`
 
 ```python
-models = await openai.list_models()      # OpenAI / vLLM / LM Studio
+models = await openai.list_models()  # OpenAI / vLLM / LM Studio
 # await ollama.list_models()  # Ollama native; Anthropic/Gemini do not expose this.
 ```
 
