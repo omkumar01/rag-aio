@@ -71,8 +71,10 @@ exposes identical Python and HTTP APIs.
 
 ## Service boundaries
 
-Every module has a local implementation; modules with expensive state or models
-(doc-handler, ocr, embedder, retrieval, rerank, generation) additionally expose FastAPI
+Every module has a local implementation; the orchestrator additionally exposes the
+platform FastAPI service (typed domain routes plus the operational endpoints), and
+modules with expensive state or models
+(doc-handler, ocr, embedder, retrieval, rerank, generation) can expose their own FastAPI
 service APIs with `/health`, `/ready`, `/metrics`, `/version`, typed domain endpoints,
 correlation IDs, and job endpoints for long operations (see ADR-0005 and ADR-0007).
 

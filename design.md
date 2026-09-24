@@ -34,9 +34,10 @@ in [adr/](adr/).
 
 ## Persistence
 
-- Capability-specific store interfaces (`SQLStore`, `DocumentStore`, `KeyValueStore`,
-  `VectorStore`, `SparseStore`, `CacheStore`, `SearchStore`) instead of one false universal
-  repository. Hybrid persistence is normal: Postgres metadata + file/object sources +
+- Capability-specific store interfaces (`DocumentStore`, `KeyValueStore`, `VectorStore`,
+  `Cache`) instead of one false universal repository (as defined in `rag-core` protocols;
+  sparse search is served by `VectorStore` implementations until a `SparseStore` protocol
+  is warranted). Hybrid persistence is normal: Postgres metadata + file/object sources +
   Qdrant vectors + Redis cache.
 - Transactions and consistency semantics are explicit per store; bulk operations everywhere.
 

@@ -38,7 +38,8 @@ Pydantic v2, hot-path internals are dataclasses/NumPy.
 **Intelligence layer** (query path):
 
 - `rag-query` — query normalization, rewriting, expansion, routing; parallel strategy
-  execution. Rewrites delegate to `rag-generation`.
+  execution. Rewrites use an injected LLM callable (deterministic by default;
+  `rag-generation` is wired in by the orchestrator, not a direct dependency).
 - `rag-retrieval` — dense/sparse (BM25)/hybrid retrieval, RRF and weighted fusion, filters,
   explainability. Reads vector stores via `rag-db-handler` contracts.
 - `rag-rerank` — second-stage ranking on small candidate sets (≤50); heuristic,
@@ -161,8 +162,9 @@ concurrency scaling, cache-hit performance, VRAM.
 - The default topology is single-node and local-first: Qdrant local mode + sqlite + localhost
   model servers. Scaled multi-service deployment (Qdrant server, PostgreSQL, Redis behind
   FastAPI services) is supported by design but not exercised by the benchmark suite.
-- Property-based and failure-mode tests exist per design.md, but no distributed-load or
-  long-soak testing was performed.
+- Failure-mode tests (timeouts, retries, cancellation, malformed input, provider outage)
+  are in place; property-based testing (hypothesis) is a planned extension, and no
+  distributed-load or long-soak testing was performed.
 
 ## 6. Extension points
 
