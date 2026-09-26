@@ -1,0 +1,20 @@
+<fieldset class="settings-fieldset">
+  <legend>Retrieval</legend>
+  <div class="stack">
+    <label>Strategy
+      <select name="retrieval_mode">
+        <option value="">— inherit —</option>
+        {% for mode in retrieval_modes %}
+        <option value="{{ mode }}"{% if view.mode == mode %} selected{% endif %}>{{ mode }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="muted settings-hint">hybrid = dense + sparse fusion; dense = vector-only.</p>
+    <label>Top K
+      <input type="text" name="top_k" value="{{ view.top_k }}" inputmode="numeric" placeholder="10">
+    </label>
+    <label>Candidate K
+      <input type="text" name="candidate_k" value="{{ view.candidate_k }}" inputmode="numeric" placeholder="50">
+    </label>
+  </div>
+</fieldset>

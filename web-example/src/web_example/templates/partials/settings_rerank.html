@@ -1,0 +1,27 @@
+<fieldset class="settings-fieldset">
+  <legend>Rerank model</legend>
+  <div class="stack">
+    <label>Strategy
+      <select name="rerank_strategy">
+        <option value="">— inherit —</option>
+        {% for strategy in rerank_strategies %}
+        <option value="{{ strategy }}"{% if view.strategy == strategy %} selected{% endif %}>{{ strategy }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Model
+      <input type="text" name="rerank_model" value="{{ view.model }}"
+             placeholder="cross-encoder/ms-marco-MiniLM-L-6-v2 (local) or e.g. BAAI/bge-reranker-base (remote)">
+    </label>
+    <label>Remote endpoint URL <span class="muted">(remote strategy only)</span>
+      <input type="text" name="rerank_base_url" value="{{ view.base_url }}" placeholder="http://localhost:1234/v1">
+    </label>
+    <label>API key env var name
+      <input type="text" name="rerank_api_key_ref" value="{{ view.api_key_ref_masked | default(view.api_key_ref, true) }}"
+             placeholder="RERANK_API_KEY">
+    </label>
+    <label>Top K
+      <input type="text" name="rerank_top_k" value="{{ view.top_k }}" inputmode="numeric" placeholder="10">
+    </label>
+  </div>
+</fieldset>

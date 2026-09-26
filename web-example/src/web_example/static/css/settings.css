@@ -1,0 +1,66 @@
+/* Settings page (global defaults + per-user overrides). */
+
+.settings-section h2 {
+  margin-top: 0;
+}
+
+.settings-fieldset {
+  border: 1px solid var(--border, #ccc);
+  border-radius: 8px;
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+
+.settings-fieldset legend {
+  font-weight: 600;
+  padding: 0 0.4rem;
+}
+
+.settings-fieldset .stack {
+  gap: 0.6rem;
+}
+
+.settings-fieldset input,
+.settings-fieldset select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-hint {
+  margin: -0.2rem 0 0;
+  font-size: 0.82rem;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.settings-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 1rem;
+  margin: 0;
+}
+
+.settings-summary dt {
+  color: var(--text-dim, #666);
+  font-weight: 600;
+}
+
+.settings-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Live validation hints (settings.js toggles these while typing). */
+.form-warning {
+  margin: 0;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  border-radius: var(--radius, 10px);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.88rem;
+}

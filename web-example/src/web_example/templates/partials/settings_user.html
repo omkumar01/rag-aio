@@ -1,0 +1,18 @@
+<div id="settings-user" class="settings-scope">
+  <form method="post" action="/settings/user" hx-post="/settings/user" hx-target="#settings-user" hx-swap="outerHTML" class="stack settings-form">
+    {% set view = user_view.generation or {} %}{% include "partials/settings_generation.html" %}
+    {% set view = user_view.embedder or {} %}{% include "partials/settings_embedder.html" %}
+    {% set view = user_view.retrieval or {} %}{% include "partials/settings_retrieval.html" %}
+    {% set view = user_view.storage or {} %}{% include "partials/settings_storage.html" %}
+    {% set view = user_view.rerank or {} %}{% include "partials/settings_rerank.html" %}
+    {% set view = user_view.ocr or {} %}{% include "partials/settings_ocr.html" %}
+    {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+    <p class="form-warning js-remote-requirements" hidden></p>
+    <div class="settings-actions">
+      <button type="submit" class="btn btn-primary">Save my settings</button>
+    </div>
+  </form>
+  <form method="post" action="/settings/user/clear" hx-post="/settings/user/clear" hx-target="#settings-user" hx-swap="outerHTML" class="inline">
+    <button type="submit" class="btn btn-danger">Clear my overrides</button>
+  </form>
+</div>

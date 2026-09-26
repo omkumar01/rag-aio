@@ -1,0 +1,40 @@
+<fieldset class="settings-fieldset">
+  <legend>Embedding</legend>
+  <div class="stack">
+    <label>Backend
+      <select name="backend" class="js-embedder-backend">
+        <option value="">— inherit —</option>
+        {% for backend in embedder_backends %}
+        <option value="{{ backend }}"{% if view.backend == backend %} selected{% endif %}>{{ backend }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Dense model
+      <input type="text" name="dense_model" class="js-embedder-model" value="{{ view.dense_model }}"
+             placeholder="BAAI/bge-small-en-v1.5 (fastembed) or e.g. text-embedding-nomic-embed-text-v1.5 (remote)">
+    </label>
+    <label>Sparse model
+      <input type="text" name="sparse_model" value="{{ view.sparse_model }}" placeholder="Qdrant/bm25">
+    </label>
+    <label>Remote endpoint URL <span class="muted">(remote backend only)</span>
+      <input type="text" name="embedder_base_url" class="js-embedder-base-url" value="{{ view.base_url }}"
+             placeholder="http://localhost:1234/v1 (any OpenAI-compatible /embeddings server)">
+    </label>
+    <label>API key env var name <span class="muted">(remote backend only)</span>
+      <input type="text" name="embedder_api_key_ref"
+             value="{{ view.api_key_ref_masked | default(view.api_key_ref, true) }}"
+             placeholder="EMBEDDING_API_KEY">
+    </label>
+    <label>Dimension
+      <input type="text" name="dim" class="js-embedder-dim" value="{{ view.dim }}" inputmode="numeric" placeholder="384">
+    </label>
+    <p class="muted">The "mock" backend is a deterministic placeholder with no
+      semantic similarity — chat retrieval cannot find relevant context with it.
+      "fastembed" runs a local ONNX model (dimension must match your collection:
+      bge-small = 384). "remote" calls any OpenAI-compatible /embeddings endpoint
+      (LM Studio, Ollama, vLLM, OpenAI) — it requires an explicit model id and
+      dimension because the vector store is sized before the first request.
+      Changing the model or dimension switches to a new, empty collection:
+      re-ingest your documents so they are searchable again.</p>
+  </div>
+</fieldset>

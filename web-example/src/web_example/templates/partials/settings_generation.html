@@ -1,0 +1,31 @@
+<fieldset class="settings-fieldset">
+  <legend>Chat generation</legend>
+  <div class="stack">
+    <label>Provider kind
+      <select name="provider">
+        <option value="">— inherit —</option>
+        {% for kind in provider_kinds %}
+        <option value="{{ kind }}"{% if view.provider == kind %} selected{% endif %}>{{ kind }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Base URL
+      <input type="text" name="base_url" value="{{ view.base_url }}" placeholder="http://localhost:1234/v1">
+    </label>
+    <label>Model
+      <input type="text" name="model" value="{{ view.model }}" placeholder="e.g. qwen3-8b">
+    </label>
+    <label>API key environment variable name
+      <input type="text" name="api_key_ref" value="{{ view.api_key_ref }}" placeholder="OPENAI_API_KEY" autocomplete="off" spellcheck="false">
+    </label>
+    {% if view.api_key_ref %}
+    <p class="muted settings-hint">Saved reference: <code>{{ view.api_key_ref_masked }}</code> — env-var name only, never a secret value.</p>
+    {% endif %}
+    <label>Temperature
+      <input type="text" name="temperature" value="{{ view.temperature }}" inputmode="decimal" placeholder="0.2">
+    </label>
+    <label>Max tokens
+      <input type="text" name="max_tokens" value="{{ view.max_tokens }}" inputmode="numeric" placeholder="(provider default)">
+    </label>
+  </div>
+</fieldset>

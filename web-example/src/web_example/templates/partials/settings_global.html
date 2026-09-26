@@ -1,0 +1,15 @@
+<div id="settings-global" class="settings-scope">
+  <form method="post" action="/settings/global" hx-post="/settings/global" hx-target="#settings-global" hx-swap="outerHTML" class="stack settings-form">
+    {% set view = global_view.generation or {} %}{% include "partials/settings_generation.html" %}
+    {% set view = global_view.embedder or {} %}{% include "partials/settings_embedder.html" %}
+    {% set view = global_view.retrieval or {} %}{% include "partials/settings_retrieval.html" %}
+    {% set view = global_view.storage or {} %}{% include "partials/settings_storage.html" %}
+    {% set view = global_view.rerank or {} %}{% include "partials/settings_rerank.html" %}
+    {% set view = global_view.ocr or {} %}{% include "partials/settings_ocr.html" %}
+    {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+    <p class="form-warning js-remote-requirements" hidden></p>
+    <div class="settings-actions">
+      <button type="submit" class="btn btn-primary">Save global defaults</button>
+    </div>
+  </form>
+</div>
