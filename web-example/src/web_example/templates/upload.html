@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Mass Upload{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/upload.css">
+<script src="/static/js/upload.js" defer></script>
+{% endblock %}
+{% block page_class %}page-upload{% endblock %}
+{% block content %}
+{# Single-quoted attribute: Jinja's tojson escapes ' but not ", so the JSON
+   array would terminate a double-quoted attribute and break Alpine. #}
+<div class="upload-page" x-data='uploadPanel({ max: {{ max_files }}, exts: {{ supported_extensions | tojson }} })'>
+  <h1>Mass Upload</h1>
+
+  <fieldset class="target-picker">
+    <legend>Destination</legend>
+    <label class="target-option">
+      <input type="radio" name="target-picker" value="user" x-model="target" checked>
+      My documents
+    </label>
+    <label class="target-option {% if not is_admin %}target-disabled{% endif %}">
+      <input type="radio" name="target-picker" value="global" x-model="target"
+             {% if not is_admin %}disabled title="Admins only"{% endif %}>
+      Global documents{% if not is_admin %} <span class="muted">(admins only)</span>{% endif %}
+    </label>
+  </fieldset>
+
+  <div class="tabs" role="tablist">
+    <button type="button" :class="tab === 'files' ? 'tab active' : 'tab'" @click="tab = 'files'">Files</button>
+    <button type="button" :class="tab === 'directory' ? 'tab active' : 'tab'" @click="tab = 'directory'">Server directory</button>
+    <button type="button" :class="tab === 'url' ? 'tab active' : 'tab'" @click="tab = 'url'">URL / sitemap</button>
+  </div>
+
+  <section x-show="tab === 'files'" class="panel">
+    <form method="post" action="/upload/files" enctype="multipart/form-data">
+      <input type="hidden" name="target" :value="target">
+      <div class="dropzone" :class="dragging ? 'dropzone-active' : ''"
+           @dragover.prevent="dragging = true"
+           @dragleave.prevent="dragging = false"
+           @drop.prevent="onDrop($event)">
+        <input type="file" id="upload-file-input" name="files" multiple class="file-input"
+               @change="onPick($event)">
+        <label for="upload-file-input" class="dropzone-label">
+          Drop files here or click to choose (max {{ max_files }})
+        </label>
+      </div>
+      <p class="file-count" x-show="files.length > 0" x-text="countLabel"></p>
+      <p class="file-count file-count-over" x-show="files.length > max" x-text="overLimitLabel"></p>
+      <ul class="file-preview">
+        <template x-for="f in files" :key="f.name">
+          <li :class="f.ok ? 'file-ok' : 'file-unsupported'">
+            <span x-text="f.name"></span>
+            <span class="muted" x-show="!f.ok">unsupported file type</span>
+          </li>
+        </template>
+      </ul>
+      <button type="submit" class="btn btn-primary" :disabled="files.length === 0 || files.length > max">
+        Upload files
+      </button>
+    </form>
+  </section>
+
+  <section x-show="tab === 'directory'" class="panel" x-cloak>
+    <form method="post" action="/upload/directory">
+      <input type="hidden" name="target" :value="target">
+      <label for="upload-directory-input" class="field-label">Server-side directory path</label>
+      <input type="text" id="upload-directory-input" name="directory"
+             class="text-input" placeholder="/data/inbox" required>
+      <p class="muted">Files are read from a path on the server, e.g. a mounted bulk-export folder.</p>
+      <button type="submit" class="btn btn-primary">Ingest directory</button>
+    </form>
+  </section>
+
+  <section x-show="tab === 'url'" class="panel" x-cloak>
+    <form method="post" action="/upload/url">
+      <input type="hidden" name="target" :value="target">
+      <label for="upload-url-input" class="field-label">Sitemap or document URL</label>
+      <input type="url" id="upload-url-input" name="url" class="text-input"
+             placeholder="https://example.com/sitemap.xml" required>
+      <p class="muted">HTTP(S) only; private and loopback addresses are refused.</p>
+      <button type="submit" class="btn btn-primary">Ingest URL</button>
+    </form>
+  </section>
+
+  <section class="jobs-section">
+    <h2>Recent jobs</h2>
+    <div id="jobs-panel" hx-get="/upload/jobs" hx-trigger="load, every 2s [window.uploadJobsActive()]"
+         hx-swap="innerHTML"></div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.name }} — Documents{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/documents.css">
+{% endblock %}
+{% block content %}
+<div class="documents-page doc-preview">
+  <p><a class="btn" href="/documents">&larr; Back to documents</a></p>
+  <section class="card doc-preview-card">
+    <h1>{{ doc.name }}</h1>
+    <dl class="doc-meta">
+      <dt>Type</dt><dd><span class="badge">{{ doc.ext }}</span></dd>
+      <dt>Size</dt><dd>{{ doc.size }}</dd>
+      <dt>Chunks</dt><dd>{{ doc.num_chunks }}</dd>
+      <dt>Visibility</dt><dd>{{ doc.visibility }}</dd>
+      <dt>Created</dt><dd>{{ doc.created_at }}</dd>
+      <dt>Source</dt><dd class="doc-source">{{ source_uri }}</dd>
+      <dt>Content hash</dt><dd><code>{{ content_hash }}</code></dd>
+    </dl>
+    {% if preview_text %}
+    <h2>Preview</h2>
+    <pre class="doc-preview-text">{{ preview_text }}</pre>
+    {% else %}
+    <p class="muted">Text preview unavailable.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

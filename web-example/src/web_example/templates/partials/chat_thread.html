@@ -1,0 +1,5 @@
+<div class="thread-inner" data-conversation-id="{{ conversation_id }}">
+  {% for message in messages %}
+    {% include "partials/chat_message.html" %}
+  {% endfor %}
+</div>

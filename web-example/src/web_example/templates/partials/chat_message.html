@@ -1,0 +1,12 @@
+<div class="chat-message {{ message.role }}">
+  <div class="bubble">
+    {% if message.attachments %}
+    <div class="attach-chips">
+      {% for attachment in message.attachments %}
+      <span class="chip">{{ attachment.name }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="bubble-text">{{ message.content }}</div>
+  </div>
+</div>

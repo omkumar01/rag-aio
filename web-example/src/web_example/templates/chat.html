@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Chat — rag-aio{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="/static/css/chat.css">
+  <script src="/static/js/chat.js" defer></script>
+{% endblock %}
+{% block page_class %}chat-page{% endblock %}
+{% block content %}
+<div class="chat-shell">
+  <aside class="chat-sidebar">
+    <div class="sidebar-head">
+      <span class="sidebar-title">Conversations</span>
+      <button id="new-chat-btn" class="btn-new-chat" type="button">+ New</button>
+    </div>
+    <div id="sidebar"
+         hx-get="/chat/conversations"
+         hx-trigger="load, conv-refresh from:body"
+         hx-swap="innerHTML"></div>
+  </aside>
+  <section class="chat-main">
+    <div class="chat-thread" id="thread">
+      <div class="thread-empty">
+        <h2>Ask your documents</h2>
+        <p>Attach files or just ask a question to get started.</p>
+      </div>
+    </div>
+    <form id="composer" class="composer" enctype="multipart/form-data" novalidate>
+      <div id="composer-errors" class="composer-errors" hidden></div>
+      <div class="attach-row">
+        <label class="attach-label">
+          <span>Documents</span>
+          <input type="file" name="doc_files" multiple
+                 accept=".pdf,.txt,.md,.markdown,.html,.htm,.docx,.xlsx,.pptx,.eml">
+        </label>
+        <label class="attach-label">
+          <span>Images</span>
+          <input type="file" name="image_files" multiple accept=".png,.jpg,.jpeg,.webp">
+        </label>
+      </div>
+      <div class="composer-row">
+        <textarea id="message-input" name="message" rows="2"
+                  placeholder="Message… (Enter to send, Shift+Enter for a newline)"></textarea>
+        <button id="send-btn" type="submit">Send</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

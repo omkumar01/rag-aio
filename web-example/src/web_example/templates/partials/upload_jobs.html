@@ -1,0 +1,36 @@
+{% if jobs %}
+{% set active_statuses = ["queued", "running"] %}
+{% set has_active = jobs | selectattr("status", "in", active_statuses) | list | length > 0 %}
+{% if has_active %}<span data-jobs-active hidden></span>{% endif %}
+<table class="jobs-table">
+  <thead>
+    <tr>
+      <th>Job</th>
+      <th>Source</th>
+      <th>Target</th>
+      <th>Status</th>
+      <th>Progress</th>
+      <th>Failed</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for job in jobs %}
+    <tr class="job-row job-{{ job.status }}">
+      <td><code>{{ job.id[:8] }}</code></td>
+      <td>{{ job.kind }}</td>
+      <td>{{ job.target }}</td>
+      <td><span class="badge badge-{{ job.status }}">{{ job.status }}</span></td>
+      <td>{{ job.processed }}/{{ job.total }}</td>
+      <td>{% if job.failed %}<span class="badge badge-failed">{{ job.failed }}</span>{% else %}0{% endif %}</td>
+    </tr>
+    {% if job.detail %}
+    <tr class="job-detail-row">
+      <td colspan="6" class="muted job-detail">{{ job.detail }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No upload jobs yet.</p>
+{% endif %}

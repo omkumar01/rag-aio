@@ -1,0 +1,17 @@
+<ul class="conv-list">
+  {% for conversation in conversations %}
+  <li class="conv-item">
+    <a class="conv-link"
+       href="/chat/conversations/{{ conversation.id }}/messages"
+       hx-get="/chat/conversations/{{ conversation.id }}/messages"
+       hx-target="#thread"
+       hx-swap="innerHTML">{{ conversation.title }}</a>
+    <button class="conv-delete" type="button" title="Delete conversation"
+            hx-delete="/chat/conversations/{{ conversation.id }}"
+            hx-confirm="Delete this conversation?"
+            hx-target="closest li" hx-swap="outerHTML">&times;</button>
+  </li>
+  {% else %}
+  <li class="conv-empty">No conversations yet.</li>
+  {% endfor %}
+</ul>
