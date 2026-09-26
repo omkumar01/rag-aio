@@ -30,6 +30,7 @@ from .indexing import (
     VectorIndexer,
 )
 from .pipeline import EmbeddingPipeline, PipelineOutcome
+from .remote import OpenAICompatibleEmbedder
 from .tokenization import HFTokenizer, SimpleTokenizer
 
 __version__ = "0.1.1"
@@ -48,6 +49,7 @@ __all__ = [
     "IngestionIndexer",
     "MockEmbedder",
     "MockSparseEmbedder",
+    "OpenAICompatibleEmbedder",
     "ParentChildChunker",
     "PipelineOutcome",
     "RecursiveChunker",

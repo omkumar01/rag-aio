@@ -18,7 +18,7 @@ them is described in [docs/architecture/README.md](../architecture/README.md).
 | `rag-db-handler` | Infrastructure | SQL, document, KV, vector and cache store abstractions + adapters | rag-core | [README](../../packages/rag-db-handler/README.md) |
 | `rag-doc-handler` | Processing | Load, type-detect, parse (PDF/HTML/Office/email/Markdown, web crawl) into canonical `Document`s | rag-core | [README](../../packages/rag-doc-handler/README.md) |
 | `rag-ocr` | Processing | Hybrid mechanical + semantic OCR with provenance-preserving regions | rag-core | [README](../../packages/rag-ocr/README.md) |
-| `rag-embedder` | Processing | Chunking, tokenization, dense/sparse embedding, indexing orchestration | rag-core | [README](../../packages/rag-embedder/README.md) |
+| `rag-embedder` | Processing | Chunking, tokenization, dense/sparse embedding (FastEmbed local or OpenAI-compatible remote), indexing orchestration | rag-core | [README](../../packages/rag-embedder/README.md) |
 | `rag-mass-inject` | Processing | High-throughput bulk ingestion jobs: backpressure, checkpoints, dead letters, resume | rag-core, rag-doc-handler, rag-ocr, rag-embedder, rag-db-handler | [README](../../packages/rag-mass-inject/README.md) |
 | `rag-query` | Intelligence | Query normalization, classification, strategies; parallel retrieval execution | rag-core, rag-retrieval | [README](../../packages/rag-query/README.md) |
 | `rag-retrieval` | Intelligence | Dense/sparse(BM25)/hybrid retrieval, RRF and weighted fusion, explainability | rag-core, rag-db-handler | [README](../../packages/rag-retrieval/README.md) |

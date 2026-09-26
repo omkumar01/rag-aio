@@ -144,7 +144,7 @@ Eighteen packages in six layers — each independently installable, each with it
 | [rag-db-handler](packages/rag-db-handler/README.md) | Infrastructure | Persistence abstractions: SQL, document, KV, vector stores |
 | [rag-doc-handler](packages/rag-doc-handler/README.md) | Processing | Document loading/parsing: PDF, HTML, web/sitemap, Office, email, Markdown |
 | [rag-ocr](packages/rag-ocr/README.md) | Processing | Hybrid mechanical + semantic OCR with provenance-preserving regions |
-| [rag-embedder](packages/rag-embedder/README.md) | Processing | Chunking, tokenization, embedding, indexing orchestration |
+| [rag-embedder](packages/rag-embedder/README.md) | Processing | Chunking, tokenization, embedding (FastEmbed local or OpenAI-compatible remote), indexing orchestration |
 | [rag-retrieval](packages/rag-retrieval/README.md) | Intelligence | Dense/sparse/hybrid retrieval, fusion, filters, explainability |
 | [rag-rerank](packages/rag-rerank/README.md) | Intelligence | Second-stage relevance optimization |
 | [rag-query](packages/rag-query/README.md) | Intelligence | Query normalization, rewriting, expansion, routing |

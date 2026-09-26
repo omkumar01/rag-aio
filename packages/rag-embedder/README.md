@@ -22,7 +22,9 @@ turns it into vectors persisted in a vector store. Concretely it owns four conce
 2. **Chunking** &mdash; six pluggable strategies (`recursive` is the default) that
    split documents into semantically meaningful, provenance-rich `Chunk` objects.
 3. **Embedding** &mdash; dense and sparse embedding strategies backed by `fastembed`
-   in production, with deterministic `MockEmbedder` alternatives for tests and CI.
+   in production, an OpenAI-compatible remote client (`OpenAICompatibleEmbedder` for
+   LM Studio, Ollama, vLLM, OpenAI, ...), and deterministic `MockEmbedder`
+   alternatives for tests and CI.
 4. **Indexing orchestration** &mdash; the `EmbeddingPipeline` wires chunking, embedding
    and indexing together and decides whether a document needs re-indexing.
 
@@ -55,6 +57,7 @@ Within the monorepo, the package is installed as a workspace member alongside
 | `fastembed` | >=0.3 | required | Production dense + sparse embedding |
 | `tokenizers` | >=0.19 | required | HuggingFace tokenizer bindings |
 | `numpy` | >=1.26 | required | Vector numerics |
+| `httpx` | >=0.27 | required | HTTP client for the OpenAI-compatible remote embedder |
 | `sentence-transformers` | >=3.0 | optional | Reserved for reranker extras |
 
 ## Architecture / Design Principles
@@ -99,6 +102,7 @@ src/rag_embedder/
 │   ├── parent_child.py      # ParentChildChunker
 │   └── registry.py          # CHUNKERS, create_chunker
 ├── embedding.py             # FastEmbedDense/Sparse, Mock*, embed_many
+├── remote.py                # OpenAICompatibleEmbedder (OpenAI-compatible /embeddings)
 ├── indexing.py              # IndexerConfig, SparseCapableStore, VectorIndexer,
 │                            # IngestionIndexer, IndexOutcome
 └── pipeline.py              # EmbeddingPipeline, PipelineOutcome
@@ -167,6 +171,7 @@ from rag_embedder import (
     FastEmbedSparse,
     MockEmbedder,
     MockSparseEmbedder,
+    OpenAICompatibleEmbedder,
     embed_many,
 )
 ```
@@ -175,6 +180,7 @@ from rag_embedder import (
 |---|---|
 | `FastEmbedDense` | Dense embedder backed by `fastembed.TextEmbedding` (default model `BAAI/bge-small-en-v1.5`). Lazy model load via `ensure_model()`. Accepts a `model_factory` callable for testing. L2-normalizes output when `normalize=True` (default). |
 | `FastEmbedSparse` | Sparse embedder backed by `fastembed.SparseTextEmbedding` (`Qdrant/bm25` default). Returns `SparseVector` objects with sorted index/value arrays. |
+| `OpenAICompatibleEmbedder` | Dense embedder backed by any OpenAI-compatible `POST {base_url}/embeddings` endpoint (LM Studio, Ollama's OpenAI mode, vLLM, OpenAI, ...). Batches requests and bounds concurrency with a semaphore. Auth via `api_key_ref` (env-var name, resolved at request time). Raises `rag_core.EmbeddingError` on transport/HTTP/parse failures. Close with `aclose()`. |
 | `MockEmbedder` | Deterministic hash-based dense embedder (SHA-256 -> normalized vector). No downloads. |
 | `MockSparseEmbedder` | Deterministic term-hash sparse embedder (term-frequency values). No downloads. |
 
@@ -184,6 +190,16 @@ dense = FastEmbedDense(model_name="BAAI/bge-small-en-v1.5", normalize=True)
 
 # Mock embedder for offline tests / examples
 mock = MockEmbedder(dim=384, normalize=True)
+
+# Remote embedding model via any OpenAI-compatible server
+remote = OpenAICompatibleEmbedder(
+    base_url="http://localhost:1234/v1",
+    model="text-embedding-nomic-embed-text-v1.5",
+    api_key_ref="LM_STUDIO_API_KEY",  # optional; env-var name, resolved per request
+    batch_size=64,
+    max_concurrency=4,
+    normalize=True,
+)
 
 # Batched, semaphore-bounded embedding of many texts
 vectors = await embed_many(texts, dense, batch_size=64, max_concurrency=4)
@@ -320,6 +336,48 @@ cfg = ChunkerConfig(strategy="token", chunk_size=256, overlap=32)
 cfg = ChunkerConfig(strategy="parent_child", chunk_size=128)
 ```
 
+### Advanced: remote OpenAI-compatible embeddings
+
+Point the pipeline at any server exposing the OpenAI `/v1/embeddings` API —
+LM Studio, Ollama (with its OpenAI-compatible endpoint), vLLM, or OpenAI itself:
+
+```python
+from rag_embedder import OpenAICompatibleEmbedder, embed_many
+
+embedder = OpenAICompatibleEmbedder(
+    base_url="http://localhost:1234/v1",
+    model="text-embedding-nomic-embed-text-v1.5",
+    api_key_ref="EMBEDDING_API_KEY",  # optional; name of env var holding the bearer token
+    batch_size=64,  # texts per HTTP request
+    max_concurrency=4,  # parallel in-flight requests
+    timeout_s=60.0,
+    normalize=True,  # L2-normalize (recommended for cosine search)
+)
+
+vectors = await embedder.embed(["hello", "world"])
+# or across many texts:
+vectors = await embed_many(texts, embedder, batch_size=64, max_concurrency=4)
+await embedder.aclose()
+```
+
+Behaviour and conventions (shared with `RemoteReranker` in `rag-rerank` and the
+OCR `VLMSemanticExtractor`):
+
+- **Secrets by reference.** `api_key_ref` is the *name* of an environment
+  variable; the token is read at request time (key rotation needs no restart)
+  and never stored on the instance, so it cannot leak via `repr`/logs.
+- **Batching + backpressure.** Inputs are split into `batch_size` chunks and at
+  most `max_concurrency` requests are in flight (asyncio semaphore).
+- **Index-aligned parsing.** Reordered `data[i].index` entries in the response
+  are honoured, so per-request vector order always matches the input order.
+- **`dim` discovery.** Pass `dim` up front, or let it be learned from the first
+  successful response (used by indexer metadata).
+- **Uniform errors.** All failures (missing key, transport, non-200, malformed
+  payloads) raise `rag_core.EmbeddingError`.
+
+Use the *same* embedder instance/model at ingestion and query time — vectors
+from different embedding models are not comparable.
+
 ### Advanced: incremental reindexing with the orchestrator pattern
 
 ```python
@@ -371,8 +429,9 @@ and is intended for use with `should_reindex`.
 
 ## Testing
 
-All tests use `MockEmbedder`/`MockSparseEmbedder` or injected `model_factory`
-callables &mdash; **no network or model downloads**. Run the suite:
+All tests use `MockEmbedder`/`MockSparseEmbedder`, injected `model_factory`
+callables, or `httpx.MockTransport` for the remote embedder &mdash; **no network
+or model downloads**. Run the suite:
 
 ```bash
 uv run pytest packages/rag-embedder -q
@@ -386,7 +445,8 @@ fixtures including a `FakeStore` that is both a `VectorStore` and a
 
 ## Dependencies
 
-See `pyproject.toml`. Runtime: `rag-core`, `fastembed`, `tokenizers`, `numpy`.
+See `pyproject.toml`. Runtime: `rag-core`, `fastembed`, `tokenizers`, `numpy`,
+`httpx`.
 Development (workspace dev group): `pytest`, `pytest-asyncio`, `pytest-cov`, `ruff`,
 `mypy`, `httpx`. The package **does not** depend on `rag-db-handler`; any
 duck-typed `VectorStore` satisfies the indexing contract.

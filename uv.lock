@@ -4268,6 +4268,7 @@ version = "0.1.1"
 source = { editable = "packages/rag-embedder" }
 dependencies = [
     { name = "fastembed" },
+    { name = "httpx" },
     { name = "numpy" },
     { name = "rag-aio-core" },
     { name = "tokenizers" },
@@ -4281,6 +4282,7 @@ sentence-transformers = [
 [package.metadata]
 requires-dist = [
     { name = "fastembed", specifier = ">=0.3" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "rag-aio-core", editable = "packages/rag-core" },
     { name = "sentence-transformers", marker = "extra == 'sentence-transformers'", specifier = ">=3.0" },

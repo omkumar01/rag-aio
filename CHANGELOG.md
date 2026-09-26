@@ -5,6 +5,23 @@ All notable changes to rag-aio are documented here. Format follows
 
 <!-- Add new entries here, above the latest release. -->
 
+## [Unreleased]
+
+### Added
+
+- **OpenAI-compatible remote embedder** (`rag-embedder`): new
+  `OpenAICompatibleEmbedder` turns any `POST {base_url}/embeddings` endpoint
+  (LM Studio, Ollama's OpenAI mode, vLLM, OpenAI, ...) into a
+  `rag_core.protocols.Embedder`, interchangeable with the local `FastEmbedDense`
+  across ingestion and query-time pipelines. Follows the existing remote-client
+  conventions (`RemoteReranker`, OCR `VLMSemanticExtractor`): secrets by
+  reference via `api_key_ref` (env-var name, resolved at request time, never
+  stored on the instance), request batching with semaphore-bounded concurrency,
+  index-aligned response parsing, optional `dim` declaration/learning and
+  L2-normalization, and uniform `rag_core.EmbeddingError` failures. Adds a
+  runtime `httpx` dependency to `rag-embedder`; tests use `httpx.MockTransport`
+  (no network).
+
 ## [v0.1.0]
 
 Initial build of the rag-aio platform: an asynchronous, modular RAG system delivered as a
