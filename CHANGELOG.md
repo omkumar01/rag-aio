@@ -21,6 +21,19 @@ All notable changes to rag-aio are documented here. Format follows
   L2-normalization, and uniform `rag_core.EmbeddingError` failures. Adds a
   runtime `httpx` dependency to `rag-embedder`; tests use `httpx.MockTransport`
   (no network).
+- **Web example UI** (`web-example/`): a standalone FastAPI + Jinja2 + HTMX + Alpine
+  web application over the workspace packages — landing page with the package catalogue,
+  signup/login/logout with bcrypt + signed session cookies (landing is the only
+  unauthenticated page), a ChatGPT-style chat page with SSE streaming answers and
+  attachments (up to 5 per type), a document explorer with preview/delete/promote, a
+  mass upload/injection console (files, server-side directory, URL/sitemap) with live
+  job progress, and a settings console (global defaults + per-user overrides) covering
+  chat/embedding/OCR/rerank providers, retrieval mode (hybrid vs dense), and storage/DB
+  credentials — secrets stay by reference (env-var names). Per-user document isolation
+  uses vector-store namespaces (`user_{id}` / `global`) merged by a composite store, so
+  chat retrieval draws on both the user's pool and the shared pool. Runs fully offline
+  against the mock profile; tests live in `web-example/tests/` and are part of the
+  standard `pytest` / `scripts/check.py` gates.
 
 ## [v0.1.0]
 
