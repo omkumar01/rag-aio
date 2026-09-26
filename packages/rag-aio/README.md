@@ -94,7 +94,7 @@ print(cfg.model_dump_json(indent=2))
 
 | Sub-config        | Key fields | Meaning |
 | ----------------- | ---------- | ------- |
-| `EmbedderConfig`  | `backend: Literal["mock","fastembed"]`, `dense_model`, `sparse_model`, `dim` | Embedder backend + dim hint (mock uses `dim` for the in-memory store). |
+| `EmbedderConfig`  | `backend: Literal["mock","fastembed","remote"]`, `dense_model`, `sparse_model`, `dim` | Embedder backend + dim hint (mock uses `dim` for the in-memory store). |
 | `StorageConfig`   | `qdrant_path`, `db_url`, `cache_backend: Literal["memory","sqlite"]`, `cache_path` | Vector DB location, SQL document store URL, cache backend. |
 | `GenerationConfig`| `provider`, `base_url`, `model`, `api_key_ref`, `temperature`, `max_tokens` | Live-generation settings; `api_key_ref` names an env var. |
 | `PipelineConfig`  | (see `rag-orchestrator`) | Embedded verbatim as `cfg.pipeline`; stages, budgets, concurrency. |

@@ -19,9 +19,15 @@ __all__ = ["EmbedderConfig", "GenerationConfig", "RAGConfig", "StorageConfig"]
 
 
 class EmbedderConfig(RagBaseModel):
-    """Embedding-backend selection and dimension hints."""
+    """Embedding-backend selection and dimension hints.
 
-    backend: Literal["mock", "fastembed"] = "fastembed"
+    ``backend="remote"`` selects an OpenAI-compatible ``/embeddings`` endpoint
+    (see :class:`rag_embedder.OpenAICompatibleEmbedder`): ``dense_model`` is the
+    remote model id and ``api_key_ref``/base_url live with the caller (the
+    facade's :func:`build_services` does not wire remote embedders itself).
+    """
+
+    backend: Literal["mock", "fastembed", "remote"] = "fastembed"
     dense_model: str | None = None
     sparse_model: str | None = None
     dim: int = 384
