@@ -34,3 +34,6 @@ Thumbs.db
 
 # benchmark reports
 benchmarks/results/
+
+# Local security-scan hook state
+.mimosa/

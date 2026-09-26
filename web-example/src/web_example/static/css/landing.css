@@ -1,0 +1,230 @@
+/* Landing page styles — extends the base theme in /static/style.css.
+   All selectors are landing-specific and additive; other pages are unaffected. */
+
+/* ---------- Hero ---------- */
+.landing-hero {
+  padding: 4rem 0 2.5rem;
+}
+.landing-hero .hero-kicker {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(16, 163, 127, 0.08);
+  border: 1px solid rgba(16, 163, 127, 0.25);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  margin-bottom: 1rem;
+}
+.landing-hero h1 {
+  font-size: 3rem;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+.landing-hero .tagline {
+  font-size: 1.2rem;
+}
+.hero-sub {
+  color: var(--text-dim);
+  max-width: 680px;
+  margin: 1rem auto 0;
+  line-height: 1.6;
+}
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+.hero-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.hero-stat strong {
+  color: var(--text);
+}
+
+/* ---------- Section headings ---------- */
+.landing-section {
+  margin-top: 3rem;
+}
+.landing-section > h2 {
+  font-size: 1.4rem;
+  margin: 0 0 0.3rem;
+}
+.landing-section > .section-sub {
+  color: var(--text-dim);
+  margin: 0 0 1.2rem;
+  font-size: 0.95rem;
+}
+
+/* ---------- Capabilities strip ---------- */
+.caps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1rem;
+}
+.cap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+}
+.cap .cap-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(16, 163, 127, 0.1);
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+}
+.cap .cap-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.cap h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.98rem;
+}
+.cap p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* ---------- Package catalogue ---------- */
+.pkg-group {
+  margin-top: 2rem;
+}
+.pkg-group:first-of-type {
+  margin-top: 0;
+}
+.pkg-group-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.8rem;
+}
+.pkg-group-title h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.pkg-group-title .count {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+.pkg-group-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  align-self: center;
+}
+.pkg-card .pkg-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(16, 163, 127, 0.08);
+  border-radius: 6px;
+  padding: 0.1rem 0.45rem;
+  margin-bottom: 0.35rem;
+}
+.pkg-card p {
+  line-height: 1.5;
+}
+.pkg-card .pkg-note {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.pkg-card.highlight {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.12);
+}
+.pkg-card.highlight .pkg-name {
+  color: #fff;
+  background: var(--accent);
+}
+.pkg-card .badge {
+  float: right;
+  margin-top: 0.15rem;
+}
+
+/* ---------- How it fits / pipeline strip ---------- */
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  font-size: 0.88rem;
+}
+.pipeline .step {
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  white-space: nowrap;
+}
+.pipeline .arrow {
+  color: var(--text-dim);
+}
+
+/* ---------- Closing CTA + footer ---------- */
+.cta-band {
+  margin-top: 3rem;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.2rem 1.5rem;
+}
+.cta-band h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.4rem;
+}
+.cta-band p {
+  color: var(--text-dim);
+  margin: 0 0 1.2rem;
+}
+.landing-footer {
+  margin: 2.5rem 0 0.5rem;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 640px) {
+  .landing-hero {
+    padding: 2.5rem 0 1.5rem;
+  }
+  .landing-hero h1 {
+    font-size: 2.2rem;
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  .pipeline {
+    justify-content: flex-start;
+  }
+}
