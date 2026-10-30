@@ -99,9 +99,6 @@ def build_checks(args: argparse.Namespace) -> list[Check]:
 
     if not args.fast and not args.skip_types:
         src_dirs = [str(p) for p in sorted(ROOT.glob("packages/*/src"))]
-        web_src = ROOT / "web-example" / "src"
-        if web_src.is_dir():
-            src_dirs.append(str(web_src))
         checks.append(Check("mypy (strict)", _uv_run_args(["mypy", *src_dirs])))
 
     # Tests

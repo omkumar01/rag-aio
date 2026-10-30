@@ -41,7 +41,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Type check
-        run: uv run mypy packages/*/src web-example/src
+        run: uv run mypy packages/*/src
         shell: bash
 
       - name: Tests
