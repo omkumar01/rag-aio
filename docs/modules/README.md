@@ -100,16 +100,6 @@ reproducible runs keyed by config hash. `rag-ui` is the Streamlit console; it de
 `rag-aio` alone and talks to the service APIs with the same Pydantic config models
 (secrets masked), so anything configurable in TOML is editable in the UI.
 
-## Web example
-
-[`web-example/`](../../web-example/) is a standalone example app (not a workspace member,
-not in the release wheel) that composes the packages into a full multi-page web UI:
-cookie-session auth, a ChatGPT-style streaming chat page with attachments, a document
-explorer with per-user/global visibility, mass upload with live job progress, and a
-settings console over `RAGConfig` (providers, retrieval mode, storage/DB credentials —
-secrets by reference). Stack: FastAPI + Jinja2 + HTMX + Alpine, SQLAlchemy async for the
-web database. See [docs/modules/web-example.md](web-example.md).
-
 ## Seeing it in code
 
 Runnable per-stage scripts live in [examples/stages/](../../examples/stages/):

@@ -189,24 +189,6 @@ demonstrates and exits cleanly when a model server is unreachable:
 - [fully_local.py](examples/fully_local.py) — real FastEmbed + Qdrant + SQLite + LM Studio end to end
 - [openai_compatible.py](examples/openai_compatible.py) — any OpenAI-compatible endpoint, env-configured
 
-## Web example
-
-[`web-example/`](web-example/) is a standalone multi-page web UI composed from the
-packages above (not a workspace member, not in the release wheel): cookie-session auth
-with signup/login, a ChatGPT-style streaming chat page with attachments, a document
-explorer with per-user and global document pools, mass upload/injection with live job
-progress, and a settings console for providers/models (chat, embedding, OCR, rerank),
-retrieval mode (hybrid vs dense), and storage/DB credentials — secrets by reference.
-FastAPI + Jinja2 + HTMX + Alpine, fully Python:
-
-```bash
-uv sync
-uv run uvicorn web_example.main:app --reload --app-dir web-example/src
-# open http://127.0.0.1:8000 — the first registered account becomes admin
-```
-
-See [docs/modules/web-example.md](docs/modules/web-example.md) for the architecture,
-pages, and the document-visibility model.
 
 ## Benchmarks
 
