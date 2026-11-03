@@ -31,9 +31,12 @@ Thumbs.db
 # Local agent tooling state
 .mimosa/
 .zcode/
-
+.om-harness/
 # benchmark reports
 benchmarks/results/
 
 # Local security-scan hook state
 .mimosa/
+
+# Graphify output
+graphify-out/
