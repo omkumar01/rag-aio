@@ -5,7 +5,7 @@ All notable changes to rag-aio are documented here. Format follows
 
 <!-- Add new entries here, above the latest release. -->
 
-## [Unreleased]
+## [v0.1.2] — 2026-11-03
 
 ### Added
 
