@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 from rag_core import (
@@ -47,6 +47,10 @@ __all__ = [
     "AskResult",
     "Orchestrator",
     "OrchestratorConfigError",
+    "PreparedQuery",
+    "StreamDelta",
+    "StreamEvent",
+    "StreamFinal",
 ]
 
 _SYSTEM_PROMPT = (
@@ -80,6 +84,52 @@ class AskResult(RagBaseModel):
     timings_ms: dict[str, float] = Field(default_factory=dict)
     query_id: str
     metrics: dict[str, Any] = Field(default_factory=dict)
+
+
+class PreparedQuery(RagBaseModel):
+    """The result of :meth:`Orchestrator.prepare`: everything built before generation.
+
+    Attributes:
+        request: The rendered :class:`~rag_core.GenerationRequest` ready for a
+            generator (``stream=False``; callers may flip it for streaming).
+        context: The token-budgeted context (useful for inspection/debugging).
+        citations: Source citations derived from the assembled context.
+        timings_ms: Per-stage wall-clock timings (``query``, ``retrieve``,
+            ``rerank``, ``context``).
+        query_id: Identifier for the query (stable within one prepare/ask).
+    """
+
+    request: GenerationRequest
+    context: Context | None = None
+    citations: list[Citation] = Field(default_factory=list)
+    timings_ms: dict[str, float] = Field(default_factory=dict)
+    query_id: str = ""
+
+
+class StreamDelta(RagBaseModel):
+    """One streamed text fragment yielded by :meth:`Orchestrator.stream_events`."""
+
+    type: Literal["delta"] = "delta"
+    text: str
+
+
+class StreamFinal(RagBaseModel):
+    """The single terminal frame yielded by :meth:`Orchestrator.stream_events`.
+
+    Carries the metadata that raw text streaming discards: the fully
+    accumulated answer, the context citations, per-stage timings and the
+    query id.
+    """
+
+    type: Literal["final"] = "final"
+    answer: str = ""
+    citations: list[Citation] = Field(default_factory=list)
+    timings_ms: dict[str, float] = Field(default_factory=dict)
+    query_id: str = ""
+
+
+type StreamEvent = StreamDelta | StreamFinal
+"""A frame from :meth:`Orchestrator.stream_events`: ``StreamDelta`` or ``StreamFinal``."""
 
 
 def _stage_overrides(config: PipelineConfig, stage: str) -> dict[str, Any]:
@@ -179,71 +229,138 @@ class Orchestrator:
         overrides: dict[str, Any] | None = None,
         query_id: str | None = None,
         correlation_id: str | None = None,
+        namespace: str | None = None,
     ) -> AskResult | AsyncIterator[str]:
         """Run the pipeline for ``query_text``.
 
-        ``stream=True`` returns an async iterator of text deltas. Timeouts come
-        from ``pipeline_config.timeout_s`` and surface as
-        :class:`~rag_core.OperationTimeout`; client disconnects propagate as
-        ``asyncio.CancelledError``.
+        ``stream=True`` returns an async iterator of text deltas (delegates to
+        :meth:`ask_stream`). Timeouts come from ``pipeline_config.timeout_s``
+        and surface as :class:`~rag_core.OperationTimeout`; client disconnects
+        propagate as ``asyncio.CancelledError``.
+
+        ``namespace`` is threaded into the :class:`~rag_core.Query` so
+        retrievers pass it down to their stores.
         """
+        if stream:
+            return await self.ask_stream(
+                query_text,
+                overrides=overrides,
+                query_id=query_id,
+                correlation_id=correlation_id,
+                namespace=namespace,
+            )
         config = self.config.merge_overrides(overrides)
         qid = query_id or new_id()
         cid = correlation_id or qid
         self.services.observer.record("ask.start", {"query_id": qid, "correlation_id": cid})
-        if stream:
-            return self._stream(query_text, config, qid, cid)
+        start = time.perf_counter()
         try:
-            return await self._ask(query_text, config, qid, cid)
+            from rag_observe import set_correlation_id
+
+            try:
+                async with asyncio.timeout(config.timeout_s):
+                    prepared = await self.prepare(
+                        query_text, query_id=qid, correlation_id=cid, namespace=namespace
+                    )
+                    timings = dict(prepared.timings_ms)
+                    set_correlation_id(cid)  # re-set: prepare resets it on exit
+                    try:
+                        result = await self._timed(
+                            "generate", self._generate(prepared.request), timings
+                        )
+                    finally:
+                        set_correlation_id(None)
+                assert isinstance(result, GenerationResult)
+                return self._build_result(
+                    result,
+                    prepared.citations,
+                    prepared.context,
+                    timings,
+                    qid,
+                    cid,
+                    start,
+                    cached=False,
+                )
+            except TimeoutError as exc:
+                raise OperationTimeout(
+                    "ask exceeded configured timeout",
+                    details={"timeout_s": config.timeout_s, "query_id": qid},
+                ) from exc
+            finally:
+                set_correlation_id(None)
         finally:
             self.services.observer.record("ask.end", {"query_id": qid})
 
-    # -- sync pipeline ------------------------------------------------------
+    # -- prepare ------------------------------------------------------------
 
-    async def _ask(self, query_text: str, config: PipelineConfig, qid: str, cid: str) -> AskResult:
+    async def prepare(
+        self,
+        query_text: str,
+        *,
+        overrides: dict[str, Any] | None = None,
+        query_id: str | None = None,
+        correlation_id: str | None = None,
+        namespace: str | None = None,
+    ) -> PreparedQuery:
+        """Run query → retrieve → fuse → rerank → context → build_citations →
+        render and return a :class:`PreparedQuery` without generating.
+
+        Per-stage timings are captured into ``PreparedQuery.timings_ms``.
+        ``namespace`` is threaded into the :class:`~rag_core.Query` so
+        retrievers pass it down to their stores.
+        """
         from rag_observe import set_correlation_id
 
-        set_correlation_id(cid)
-        timings: dict[str, float] = {}
-        start = time.perf_counter()
+        config = self.config.merge_overrides(overrides)
+        qid = query_id or new_id()
+        set_correlation_id(correlation_id or qid)
         try:
-            async with asyncio.timeout(config.timeout_s):
-                request, context, citations = await self._prepare(query_text, config, qid, timings)
-                result = await self._timed("generate", self._generate(request), timings)
-                assert isinstance(result, GenerationResult)
-                return self._build_result(
-                    result, citations, context, timings, qid, cid, start, cached=False
-                )
-        except TimeoutError as exc:
-            raise OperationTimeout(
-                "ask exceeded configured timeout",
-                details={"timeout_s": config.timeout_s, "query_id": qid},
-            ) from exc
+            from rag_context.citations import build_citations
+            from rag_context.render import render_context
+
+            timings: dict[str, float] = {}
+            query, qres = await self._process_query(query_text, config, qid, timings, namespace)
+            results = await self._timed("retrieve", self._retrieve(qres, config, timings), timings)
+            fused = self._fuse(results, config)
+            hits = await self._timed("rerank", self._rerank(query, fused, config), timings)
+            context = await self._timed(
+                "context", self._build_context(query, hits, config), timings
+            )
+            citations = build_citations(context)
+            rendered = render_context(context)
+            request = self._build_request(query, rendered, config, stream=False)
+            self.services.observer.record(
+                "prepare.end", {"query_id": qid, "correlation_id": correlation_id or qid}
+            )
+            return PreparedQuery(
+                request=request,
+                context=context,
+                citations=citations,
+                timings_ms=timings,
+                query_id=qid,
+            )
         finally:
             set_correlation_id(None)
 
-    async def _prepare(
-        self, query_text: str, config: PipelineConfig, qid: str, timings: dict[str, float]
-    ) -> tuple[GenerationRequest, Context | None, list[Citation]]:
-        from rag_context.citations import build_citations
-        from rag_context.render import render_context
-
-        query, qres = await self._process_query(query_text, config, qid, timings)
-        results = await self._timed("retrieve", self._retrieve(qres, config, timings), timings)
-        fused = self._fuse(results, config)
-        hits = await self._timed("rerank", self._rerank(query, fused, config), timings)
-        context = await self._timed("context", self._build_context(query, hits, config), timings)
-        citations = build_citations(context)
-        rendered = render_context(context)
-        request = self._build_request(query, rendered, config, stream=False)
-        return request, context, citations
+    # -- sync pipeline ------------------------------------------------------
 
     async def _process_query(
-        self, query_text: str, config: PipelineConfig, qid: str, timings: dict[str, float]
+        self,
+        query_text: str,
+        config: PipelineConfig,
+        qid: str,
+        timings: dict[str, float],
+        namespace: str | None = None,
     ) -> tuple[Query, QueryResult]:
         engine = self.services.query_engine
         assert engine is not None  # validated in __init__
-        query = Query(text=query_text, id=qid, top_k=_top_k(config), deadline_s=config.timeout_s)
+        query = Query(
+            text=query_text,
+            id=qid,
+            top_k=_top_k(config),
+            deadline_s=config.timeout_s,
+            namespace=namespace,
+        )
         qres = await self._timed("query", engine.process(query), timings)
         return qres.query, qres
 
@@ -353,21 +470,101 @@ class Orchestrator:
 
     # -- streaming ----------------------------------------------------------
 
-    def _stream(
-        self, query_text: str, config: PipelineConfig, qid: str, cid: str
+    async def ask_stream(
+        self,
+        query_text: str,
+        *,
+        overrides: dict[str, Any] | None = None,
+        query_id: str | None = None,
+        correlation_id: str | None = None,
+        namespace: str | None = None,
     ) -> AsyncIterator[str]:
-        """Return an async iterator of generation deltas for the same pipeline."""
+        """Stream the generation as raw text deltas for the same pipeline.
+
+        Timeouts come from ``pipeline_config.timeout_s`` and surface as
+        :class:`~rag_core.OperationTimeout`; client disconnects propagate as
+        ``asyncio.CancelledError``. ``namespace`` is threaded into the
+        :class:`~rag_core.Query` so retrievers pass it down to their stores.
+        """
         from rag_observe import set_correlation_id
+
+        config = self.config.merge_overrides(overrides)
+        qid = query_id or new_id()
+        cid = correlation_id or qid
+        self.services.observer.record("ask.start", {"query_id": qid, "correlation_id": cid})
 
         async def _gen() -> AsyncIterator[str]:
             set_correlation_id(cid)
             try:
                 async with asyncio.timeout(config.timeout_s):
-                    request, _context, _citations = await self._prepare(query_text, config, qid, {})
+                    prepared = await self.prepare(
+                        query_text, query_id=qid, correlation_id=cid, namespace=namespace
+                    )
+                    set_correlation_id(cid)  # re-set: prepare resets it on exit
                     generator = self.services.generator
                     assert generator is not None
-                    async for delta in generator.stream(request):
-                        yield delta
+                    try:
+                        async for delta in generator.stream(prepared.request):
+                            yield delta
+                    finally:
+                        set_correlation_id(None)
+            except TimeoutError as exc:
+                raise OperationTimeout(
+                    "stream exceeded configured timeout",
+                    details={"timeout_s": config.timeout_s, "query_id": qid},
+                ) from exc
+            finally:
+                set_correlation_id(None)
+                self.services.observer.record("ask.stream.end", {"query_id": qid})
+
+        return _gen()
+
+    async def stream_events(
+        self,
+        query_text: str,
+        *,
+        overrides: dict[str, Any] | None = None,
+        query_id: str | None = None,
+        correlation_id: str | None = None,
+        namespace: str | None = None,
+    ) -> AsyncIterator[StreamEvent]:
+        """Stream typed frames: one :class:`StreamDelta` per generation delta,
+        then exactly one terminal :class:`StreamFinal` carrying the fully
+        accumulated answer, the context citations, per-stage timings and the
+        query id — no metadata discarded.
+
+        Timeouts behave like :meth:`ask_stream`.
+        """
+        from rag_observe import set_correlation_id
+
+        config = self.config.merge_overrides(overrides)
+        qid = query_id or new_id()
+        cid = correlation_id or qid
+        self.services.observer.record("ask.start", {"query_id": qid, "correlation_id": cid})
+
+        async def _gen() -> AsyncIterator[StreamEvent]:
+            set_correlation_id(cid)
+            try:
+                async with asyncio.timeout(config.timeout_s):
+                    prepared = await self.prepare(
+                        query_text, query_id=qid, correlation_id=cid, namespace=namespace
+                    )
+                    set_correlation_id(cid)  # re-set: prepare resets it on exit
+                    generator = self.services.generator
+                    assert generator is not None
+                    parts: list[str] = []
+                    try:
+                        async for delta in generator.stream(prepared.request):
+                            parts.append(delta)
+                            yield StreamDelta(text=delta)
+                    finally:
+                        set_correlation_id(None)
+                    yield StreamFinal(
+                        answer="".join(parts),
+                        citations=prepared.citations,
+                        timings_ms=prepared.timings_ms,
+                        query_id=prepared.query_id,
+                    )
             except TimeoutError as exc:
                 raise OperationTimeout(
                     "stream exceeded configured timeout",

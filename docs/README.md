@@ -9,7 +9,7 @@
 | [development/](development/README.md) | Setup, conventions, quality gates, releasing |
 | [testing/](testing/README.md) | Test strategy, fixtures, markers, integration/e2e setup |
 | [performance/](performance/README.md) | Benchmark methodology and results |
-| [deployment/](deployment/README.md) | Deployment topologies, in-process vs services, compose |
+| [deployment/](deployment/README.md) | Deployment topologies, authentication & multi-tenancy, SSE streaming and job callbacks, shutdown ordering, sizing on process RSS |
 
 Root-level documents: [README](../README.md), [architecture.md](../architecture.md),
 [design.md](../design.md), [CHANGELOG](../CHANGELOG.md), [Decisions](../DECISIONS.md),

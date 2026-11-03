@@ -24,9 +24,16 @@ tracks them plus open questions.
 - In-house evaluation metrics (no ranx) to keep `rag-eval` dependency-light.
 - LangChain/LlamaIndex not dependencies; optional adapters only if a concrete benefit
   is demonstrated.
+- Rerank endpoint auto-detection (`rag-rerank`): the LM Studio / qwen3-reranker
+  endpoint-shape question is resolved by runtime probing rather than configuration.
+  `RemoteReranker` probes `POST {base_url}/rerank` once with a one-document probe body
+  (`{model, query: "probe", documents: ["probe"]}`): HTTP 200 selects native `/rerank`
+  mode (Jina/Cohere-shaped `results[i].score`, index-aligned); 404/405/422 selects
+  chat-template scoring over `/chat/completions` (a JSON array of 0-10 relevance scores
+  mapped to 0-1); any other status raises `RerankError`. The probe outcome is logged at
+  INFO and the detected mode is cached on the instance for its lifetime (`.mode`
+  property).
 
 ## Open questions
 
-- Reranking via LM Studio's qwen3-reranker: confirm the endpoint shape exposed by the
-  local server (native `/rerank` vs scoring-template over `/v1/chat/completions`) during
-  `rag-rerank` implementation.
+- None currently.

@@ -113,6 +113,10 @@ rag = RAG(services, cfg.pipeline)
 `build_services` selects `_build_mock_services` when `cfg.embedder.backend == "mock"`,
 otherwise delegates to `rag_orchestrator.load_local_services(...)` with paths taken from
 `cfg.storage`. The mock profile substitutes `_StubGenerator` for live generation (see below).
+The mock wiring itself now lives in `rag-orchestrator` (`rag_orchestrator.build_mock_services`);
+the facade's `_build_mock_services` is a thin adapter that only maps config values (e.g.
+`cfg.embedder.dim` -> `vector_size`), so consumers depending on `rag-aio-orchestrator`
+directly can build the offline stack without the facade.
 
 ### `_StubGenerator`
 
@@ -123,10 +127,10 @@ When the prompt contains no context, it returns a fixed fallback string. It reco
 `stream`.
 
 ```python
-from rag_aio.facade import _StubGenerator
+from rag_orchestrator.mock_services import StubGenerator
 from rag_core.generation import GenerationRequest
 
-stub = _StubGenerator()
+stub = StubGenerator()
 stub.requests  # list[GenerationRequest] captured so far
 result = await stub.generate(request)  # text derived from rendered prompt
 ```
@@ -303,6 +307,21 @@ Validation rules:
   `embedder.backend = "mock"` so `build_services` picks the offline wiring.
 - `GenerationConfig.api_key_ref` is never a credential value — it names the env var that
   `rag_generation.create_provider` resolves per request.
+
+Environment variable overrides (`RAG_AIO_` prefix, ADR-0006 tier) are implemented:
+`RAGConfig.from_file` deep-merges them over the TOML data, so precedence is
+defaults → TOML → environment. Split the path after the prefix on `__` (segments are
+lowercased); values are parsed as JSON when possible, otherwise kept as raw strings:
+
+```bash
+# override storage.db_url from the TOML file:
+RAG_AIO_STORAGE__DB_URL="sqlite+aiosqlite:///./data/prod.db" rag-aio -c config.toml serve
+# nested pipeline keys work too:
+RAG_AIO_PIPELINE__EMBEDDING__POLICY=mock rag-aio ask "hello"
+```
+
+Unknown top-level keys (e.g. `RAG_AIO_ASK__STREAM`) are dropped before validation so the
+`extra="forbid"` contract stays intact.
 
 ## Testing
 

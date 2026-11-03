@@ -118,6 +118,133 @@ poll via `/v1/jobs/{job_id}` (ADR-0007). Bulk ingestion itself is handled by
 Note: the scaled topology is supported by design (contracts are network-transparent) but
 is not exercised by the benchmark suite, which measures the single-node profiles.
 
+## Authentication & multi-tenancy
+
+The FastAPI service surface is identity-provider agnostic. `create_app`
+(`packages/rag-orchestrator/src/rag_orchestrator/app/app.py`) accepts two optional
+hooks, defined in `packages/rag-orchestrator/src/rag_orchestrator/app/hooks.py`, that a
+host process supplies:
+
+| Piece | Shape | Role |
+| --- | --- | --- |
+| `AuthContext` | `RagBaseModel` | Identity of an authenticated request: `subject` (required), `tenant`, `namespace`, free-form `attributes` |
+| `authenticator` | `RequestAuthenticator` protocol | `async authenticate(request) -> AuthContext \| None`; returning `None` rejects the request |
+| `namespace_resolver` | `NamespaceResolver` protocol | `namespace_for(auth) -> str \| None`; maps an identity to the namespace its data lives in |
+
+```python
+from rag_orchestrator.app import create_app
+from rag_orchestrator.app.hooks import AuthContext, NamespaceResolver
+
+
+class BearerAuthenticator:
+    async def authenticate(self, request) -> AuthContext | None:
+        token = request.headers.get("Authorization", "").removeprefix("Bearer ")
+        return decode_token(token)  # your IdP / JWT check -> AuthContext | None
+
+
+class TenantNamespaceResolver(NamespaceResolver):
+    def namespace_for(self, auth: AuthContext) -> str | None:
+        return f"user_{auth.subject}"
+
+
+app = create_app(
+    services,
+    pipeline_config,
+    authenticator=BearerAuthenticator(),
+    namespace_resolver=TenantNamespaceResolver(),
+)
+```
+
+Rules as implemented:
+
+- **Protected endpoints**: with an `authenticator` wired, `POST /v1/ask`,
+  `POST /v1/ingest`, and `GET /v1/jobs/{job_id}` require authentication; a rejected
+  request gets `401 {"error": "unauthenticated"}`. `GET /health`, `/ready`, `/metrics`,
+  `/version`, and `/v1/pipelines` stay open so probes work without credentials.
+- **Resolver wins over the request body** (tenant isolation is not overridable): when
+  both hooks are set and the resolver returns a non-`None` namespace, any
+  client-supplied `namespace` in the request body is ignored.
+- **Per-request namespace fields**: `POST /v1/ask` accepts `namespace` and threads it
+  through `Orchestrator.ask` / `ask_stream` / `stream_events` / `prepare` into
+  retrieval; `POST /v1/ingest` accepts `namespace`, which is stamped onto the resulting
+  `Document` (`Document.tenant` / `Document.namespace`). Without a resolver the body
+  namespace is used as-is; without either, all data lives in one unnamespaced pool.
+
+### Recipe: `user_{id}` + `global` namespace merging
+
+A common pattern is per-user data plus a shared corpus everyone can read. Keep the
+resolver mapping identities to `user_{subject}` and wrap the vector store so *reads*
+search both the caller's namespace and `global`, while *writes* stay in the resolved
+namespace. Every `VectorStore` method accepts a `namespace` argument, so the wrapper is
+mechanical:
+
+```python
+class SharedPlusUserVectorStore:
+    """Read the resolved namespace plus `global`; write to the resolved namespace."""
+
+    def __init__(self, inner, shared_namespace: str = "global") -> None:
+        self._inner = inner
+        self._shared = shared_namespace
+
+    async def search(self, vector, top_k, filters=None, namespace=None):
+        hits = list(await self._inner.search(vector, top_k, filters, namespace=namespace))
+        hits += await self._inner.search(vector, top_k, filters, namespace=self._shared)
+        return sorted(hits, key=lambda h: h.normalized_score, reverse=True)[:top_k]
+
+    async def upsert(self, chunk_id, vector, payload, namespace=None):
+        await self._inner.upsert(chunk_id, vector, payload, namespace=namespace)
+
+    def __getattr__(self, name):  # delete / count / health / close / ... delegate verbatim
+        return getattr(self._inner, name)
+
+
+services.vector_store = SharedPlusUserVectorStore(services.vector_store)
+```
+
+The merge above is a plain sort by normalized score — for production quality, re-rank
+the merged candidate set (the pipeline's reranker or a cross-encoder) instead.
+
+### Alternative: FastAPI middleware
+
+Teams with existing auth middleware can keep it and adapt it to the hooks: the
+middleware verifies the protected paths and stashes the `AuthContext` on
+`request.state`; a thin adapter authenticator reads it back, which keeps the
+resolver-wins namespace logic fully active:
+
+```python
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+PROTECTED = ("/v1/ask", "/v1/ingest", "/v1/jobs")
+
+
+class StateAuthenticator:
+    """Adapter: authentication already happened in middleware."""
+
+    async def authenticate(self, request: Request) -> AuthContext | None:
+        return getattr(request.state, "auth", None)
+
+
+def build_app(services, pipeline_config):
+    app = create_app(
+        services,
+        pipeline_config,
+        authenticator=StateAuthenticator(),
+        namespace_resolver=TenantNamespaceResolver(),
+    )
+
+    @app.middleware("http")
+    async def bearer_auth(request: Request, call_next):
+        if request.url.path.startswith(PROTECTED):
+            auth = await verify_bearer(request)  # your IdP / JWT verification
+            if auth is None:
+                return JSONResponse({"error": "unauthenticated"}, status_code=401)
+            request.state.auth = auth
+        return await call_next(request)
+
+    return app
+```
+
 ## Resource notes
 
 - **Mock profile**: no model downloads, no disk writes outside tmp dirs; a full
@@ -130,7 +257,57 @@ is not exercised by the benchmark suite, which measures the single-node profiles
   collection stay fast.
 - **RAM reporting caveat**: benchmark RAM figures via `tracemalloc` cover Python
   allocations only; native buffers (ONNX runtime, model weights, Qdrant storage) are
-  invisible — size production machines on measured process RSS, not benchmark numbers.
+  invisible — see [Sizing on process RSS](#sizing-on-process-rss) below.
+
+## Shutdown ordering
+
+Close the wiring bag before the process exits:
+
+```python
+try:
+    ...  # serve / run jobs / answer queries
+finally:
+    await services.aclose()  # idempotent — safe to call more than once
+```
+
+`OrchestratorServices.aclose()` closes the vector store, document store, and cache
+first, then any other owned component that exposes `aclose`/`close` (via
+`rag_core.lifecycle.aclose_component` / `rag_core.Closable`); components without a
+close method are skipped silently. Calling it twice is a no-op.
+
+Windows + local-mode Qdrant: Qdrant local mode holds file locks on its persistence
+directory, so `services.aclose()` must run *before* any temp-dir cleanup — the pattern
+in [examples/fully_local.py](../../examples/fully_local.py) calls it in a `finally`
+block inside the `TemporaryDirectory` context. Relatedly, `qdrant_path` is
+caller-managed: it is a persistent directory the library neither creates as a temp dir
+nor deletes; reclaim the disk yourself when the path is no longer needed.
+
+## Sizing on process RSS
+
+Benchmark RAM numbers are produced with `tracemalloc`, which sees Python allocations
+only. Native buffers — the ONNX runtime and its model weights, Qdrant local-mode
+storage, C-extension arenas — are invisible to it, so treat the benchmark RAM figures
+as a *lower bound* on real footprint and size production machines on measured process
+RSS.
+
+Measuring real RSS:
+
+| Platform | Command |
+| --- | --- |
+| Linux | `grep VmRSS /proc/<pid>/status` (peak: `VmHWM`), or `ps -o rss= -p <pid>` (KiB) |
+| macOS | `ps -o rss= -p <pid>` (KiB) |
+| Windows | Task Manager → Details, or `psutil.Process(pid).memory_info().rss` |
+| Containers | `docker stats` (add `--no-stream` for a single sample) |
+
+Recipe:
+
+1. Deploy with the production model weights (real generation/embedding models, not the
+   mock profile) and a representative corpus — Qdrant local mode mmaps its index, so
+   corpus size is part of the footprint.
+2. Load-test at expected concurrency and record peak RSS (Linux `VmHWM` is the
+   high-water mark; sample `docker stats` continuously for containers).
+3. Size the host or container limit at ~1.5–2x peak RSS to absorb spikes (large PDF
+   parsing, rerank candidate batches, ONNX arena growth).
 
 ## Health and monitoring
 
@@ -155,3 +332,31 @@ The orchestrator's pipeline API additionally serves:
 
 `rag-observe` emits OpenTelemetry spans/metrics with correlation IDs and log redaction,
 exporting to a pluggable OTel backend for distributed tracing across services.
+
+### Server-sent events and job callbacks
+
+`POST /v1/ask` with `stream=true` has two wire formats, selected by the `events` field
+on the request body:
+
+- **Default (`events=false`)** — unchanged: `data: {...}` JSON text deltas terminated by
+  a `data: [DONE]` sentinel.
+- **Typed SSE (`events=true`)** — named frames instead: one `event: delta` per
+  generation fragment carrying `{"type": "delta", "text": ...}`, then exactly one
+  `event: done` carrying the terminal payload with nothing discarded — the fully
+  accumulated answer, citation provenance, per-stage timings, and the query id. There
+  is no `[DONE]` sentinel to parse; the client switches on the event name.
+
+```text
+event: delta
+data: {"type":"delta","text":"The activation code"}
+
+event: done
+data: {"type":"final","answer":"The activation code is RAG-8891.","citations":[...],"timings_ms":{"query":0.4,"retrieve":12.1},"query_id":"..."}
+```
+
+For long-running work, `create_app(..., on_job_complete=callback)` fires `callback`
+after every terminal ingest job (success or failure), passing the `PipelineJob` as its
+only argument. The callback may be sync or async; exceptions are logged and swallowed
+so job recording never breaks the endpoint. Use it for webhook-style side effects —
+enqueueing a UI refresh, pushing metrics, or triggering downstream indexing. Job
+status remains pollable via `GET /v1/jobs/{job_id}`.

@@ -144,8 +144,11 @@ class InMemoryVectorStore(VectorStore):
             p for p in self._points if not (p["namespace"] == ns and p["chunk_id"] in wanted)
         ]
 
-    def count(self, namespace: str | None = None) -> int:
-        """Count stored points, optionally scoped to a namespace (synchronous)."""
+    async def count(self, namespace: str | None = None) -> int:
+        """Count stored points, optionally scoped to a namespace.
+
+        Async to match :meth:`QdrantVectorStore.count` for protocol consistency.
+        """
         ns = namespace or "default"
         return sum(1 for p in self._points if p["namespace"] == ns)
 

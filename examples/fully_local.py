@@ -17,7 +17,6 @@ Run: uv run python examples/fully_local.py
 from __future__ import annotations
 
 import asyncio
-import inspect
 import os
 import tempfile
 from pathlib import Path
@@ -27,7 +26,6 @@ from rag_generation import OpenAICompatibleProvider
 from rag_orchestrator import (
     AskResult,
     Orchestrator,
-    OrchestratorServices,
     PipelineConfig,
     ingest,
     load_local_services,
@@ -64,16 +62,6 @@ def _pick_chat_model(models: list[str]) -> str | None:
     )
 
 
-async def _close_stores(services: OrchestratorServices) -> None:
-    """Best-effort close of backend resources (keeps Windows temp cleanup happy)."""
-    for store in (services.vector_store, services.document_store):
-        close_fn = getattr(store, "close", None)
-        if callable(close_fn):
-            outcome = close_fn()
-            if inspect.isawaitable(outcome):
-                await outcome
-
-
 async def main() -> None:
     try:
         models = await _probe_endpoint(BASE_URL)
@@ -95,38 +83,40 @@ async def main() -> None:
     ) as tmp:
         services = load_local_services(
             qdrant_path=str(Path(tmp) / "qdrant"),
-            db_url=f"sqlite+aiosqlite:///{Path(tmp) / 'rag.db'}",
+            document_db_url=f"sqlite+aiosqlite:///{Path(tmp) / 'rag.db'}",
             lm_studio_url=BASE_URL,
         )
-        config = PipelineConfig.local_default()
-        # The default profile routes to a static model id; point the generation
-        # stage at a model the server actually serves so the request succeeds.
-        model = os.environ.get("LM_STUDIO_MODEL") or _pick_chat_model(models)
-        if model is not None:
-            config.generation = config.generation.model_copy(
-                update={"overrides": {**config.generation.overrides, "model": model}}
-            )
-            print(f"Generation model: {model}")
+        try:
+            config = PipelineConfig.local_default()
+            # The default profile routes to a static model id; point the generation
+            # stage at a model the server actually serves so the request succeeds.
+            model = os.environ.get("LM_STUDIO_MODEL") or _pick_chat_model(models)
+            if model is not None:
+                config.generation = config.generation.model_copy(
+                    update={"overrides": {**config.generation.overrides, "model": model}}
+                )
+                print(f"Generation model: {model}")
 
-        doc_path = Path(tmp) / "reactor.md"
-        doc_path.write_text(SAMPLE, encoding="utf-8")
-        document = await ingest(services, str(doc_path), config=config)
-        print(f"Ingested: {document.source_uri} ({len(document.text)} chars)")
+            doc_path = Path(tmp) / "reactor.md"
+            doc_path.write_text(SAMPLE, encoding="utf-8")
+            document = await ingest(services, str(doc_path), config=config)
+            print(f"Ingested: {document.source_uri} ({len(document.text)} chars)")
 
-        orchestrator = Orchestrator(services, config)
-        result = await orchestrator.ask("What is the activation code for the reactor?")
-        assert isinstance(result, AskResult), "expected a non-streaming AskResult"
+            orchestrator = Orchestrator(services, config)
+            result = await orchestrator.ask("What is the activation code for the reactor?")
+            assert isinstance(result, AskResult), "expected a non-streaming AskResult"
 
-        print("\nAnswer:")
-        print(result.answer)
-        print("\nCitations:")
-        for citation in result.citations:
-            print(f"  [{citation.citation_id}] {citation.source_uri or citation.document_id}")
-        print("\nStage timings (ms):")
-        for stage, ms in result.timings_ms.items():
-            print(f"  {stage:12s} {ms:8.2f}")
-
-        await _close_stores(services)
+            print("\nAnswer:")
+            print(result.answer)
+            print("\nCitations:")
+            for citation in result.citations:
+                print(f"  [{citation.citation_id}] {citation.source_uri or citation.document_id}")
+            print("\nStage timings (ms):")
+            for stage, ms in result.timings_ms.items():
+                print(f"  {stage:12s} {ms:8.2f}")
+        finally:
+            # Close backend resources before Windows temp cleanup.
+            await services.aclose()
 
 
 if __name__ == "__main__":

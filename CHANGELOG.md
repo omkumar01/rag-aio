@@ -21,19 +21,94 @@ All notable changes to rag-aio are documented here. Format follows
   L2-normalization, and uniform `rag_core.EmbeddingError` failures. Adds a
   runtime `httpx` dependency to `rag-embedder`; tests use `httpx.MockTransport`
   (no network).
-- **Web example UI** (`web-example/`): a standalone FastAPI + Jinja2 + HTMX + Alpine
-  web application over the workspace packages — landing page with the package catalogue,
-  signup/login/logout with bcrypt + signed session cookies (landing is the only
-  unauthenticated page), a ChatGPT-style chat page with SSE streaming answers and
-  attachments (up to 5 per type), a document explorer with preview/delete/promote, a
-  mass upload/injection console (files, server-side directory, URL/sitemap) with live
-  job progress, and a settings console (global defaults + per-user overrides) covering
-  chat/embedding/OCR/rerank providers, retrieval mode (hybrid vs dense), and storage/DB
-  credentials — secrets stay by reference (env-var names). Per-user document isolation
-  uses vector-store namespaces (`user_{id}` / `global`) merged by a composite store, so
-  chat retrieval draws on both the user's pool and the shared pool. Runs fully offline
-  against the mock profile; tests live in `web-example/tests/` and are part of the
-  standard `pytest` / `scripts/check.py` gates.
+- **`RAG_AIO_` environment-variable overrides** (`rag-aio`): the env tier of the
+  ADR-0006 precedence chain (defaults → TOML → env) is now implemented in
+  `RAGConfig.from_file`. `RAG_AIO_SECTION__FIELD=VALUE` maps to nested config
+  (double underscore splits, segments lowercased); values are parsed with
+  `json.loads` (raw-string fallback); unknown top-level keys are dropped. See
+  `docs/configuration/README.md` and `rag_aio.config.env_overrides`.
+- **`Document.text_hash`** (`rag-core`): additive field hashing the text alone
+  (`content_hash` keeps its `source_uri + text` semantics), enabling content-level
+  dedup across paths.
+- **Lifecycle helpers** (`rag-core`): `Closable` protocol and
+  `aclose_component()` in `rag_core.lifecycle` — close sync-or-async `close`/
+  `aclose` methods idempotently without touching existing protocol signatures.
+- **`OrchestratorServices.aclose()`** (`rag-orchestrator`): idempotent shutdown of
+  all owned components (vector store → document store → cache → other closables).
+  `examples/fully_local.py` and the facade `RAG` close path now use it.
+- **`load_local_services(document_db_url=...)`** (`rag-orchestrator`): explicit
+  name for the document-store connection; the old `db_url` parameter keeps working
+  but emits a `DeprecationWarning`.
+- **Public step/streaming API** (`rag-orchestrator`): `Orchestrator.prepare() ->
+  PreparedQuery`, `ask_stream() -> AsyncIterator[str]`, and
+  `stream_events() -> AsyncIterator[StreamDelta | StreamFinal]` — streaming no
+  longer discards citations/timings (the terminal `StreamFinal` carries answer,
+  citations, timings, and query_id), and integrators no longer need private
+  internals. `ask(stream=True)` still works.
+- **Per-request namespace threading** (`rag-orchestrator`): `namespace` accepted on
+  `Orchestrator.ask/ask_stream/stream_events/prepare` and on `/v1/ask` +
+  `/v1/ingest` request bodies; stores/retrievers already supported namespaces.
+- **Optional auth/tenant hooks** (`rag-orchestrator.app.hooks`):
+  `AuthContext`, `RequestAuthenticator`, and `NamespaceResolver` protocols;
+  `create_app(..., authenticator=..., namespace_resolver=..., on_job_complete=...)`.
+  With an authenticator set, `/v1/*` requires auth (401 otherwise); the resolver's
+  namespace wins over the request body for tenant isolation; `on_job_complete`
+  fires a webhook-style callback on terminal ingest jobs. Default behavior with no
+  hooks is unchanged. See `docs/deployment/README.md`.
+- **Opt-in typed SSE events** (`rag-orchestrator.app`): `AskRequest.events=True`
+  switches `/v1/ask` streaming to `event: delta` / `event: done` frames (done
+  carries answer/citations/timings/query_id); the default JSON-deltas + `[DONE]`
+  protocol is unchanged.
+- **Mock services in the orchestrator** (`rag-orchestrator`): `build_mock_services`
+  (and `StubGenerator`) moved from the facade into
+  `rag_orchestrator.mock_services`, so consumers depending on members directly can
+  assemble the offline stack; the facade delegates.
+- **Sparse feature detection** (`rag-retrieval`): `supports_sparse(store)`
+  (`TypeGuard[SparseSearchStore]`); `load_local_services` auto-wires
+  `SparseRetriever` when the store implements `search_sparse` (Qdrant today keeps
+  the documented dense-only wiring). Corrected the README claim that
+  `QdrantVectorStore` supports learned-sparse search.
+- **SSE progress bridge** (`rag-observe`): `rag_observe.sse.sse_stream(hub)` turns
+  `ObservabilityHub` events into SSE frames (`data: {"event": ..., "attributes": ...}`)
+  with optional filtering and leak-free unsubscribe.
+- **Docs**: deployment guide gained "Authentication & multi-tenancy" (incl. the
+  `user_{id}` + `global` merge recipe and the wrap-`create_app` pattern),
+  "Shutdown ordering", "Sizing on process RSS", and SSE/job-callback sections;
+  configuration docs document the now-implemented env tier; reserved
+  (`postgres`/`pgvector`/`faiss`) extras and the facade-only `qdrant`/`fastembed`
+  extras story are documented in the READMEs.
+
+### Changed
+
+- **`InMemoryVectorStore.count` is now `async`** (`rag-db-handler`), matching
+  `QdrantVectorStore.count` for protocol consistency. Call sites that awaited the
+  result are unaffected; direct sync callers must now await (the FastAPI metrics
+  endpoint already guards with `isawaitable`).
+
+### Removed
+
+- **Web example UI** (`web-example/`): the standalone FastAPI + Jinja2 + HTMX
+  web application was removed from the workspace (commits `1944ad2` / `c13a01a`)
+  before release; the server/app layer it exercised is now covered by the
+  first-class auth hooks, namespace threading, and typed SSE shipped in this
+  release (see Added), and the web app itself will live in its own repository.
+
+### Fixed
+
+- **`rag-aio-db-handler` / `rag-aio` now declare `sqlalchemy[asyncio]>=2.0`**: the
+  SQL stores import `sqlalchemy.ext.asyncio` eagerly, which failed with
+  "SQLAlchemy asyncio module requires greenlet" in consumer environments that did
+  not happen to install `greenlet`. The asyncio extra pins the dependency
+  correctly (was bare `sqlalchemy>=2.0`).
+- **Ingestion stage cache invalidated by source changes** (`rag-orchestrator`):
+  the cache key now includes a cheap source fingerprint (local-file `mtime_ns:size`),
+  so re-ingesting a *changed* file re-indexes instead of short-circuiting on the
+  stale URI-keyed entry (which previously survived out-of-band vector purges).
+  Non-file sources behave as before.
+- **Rerank probe outcome is logged** (`rag-rerank`): `RemoteReranker` emits one
+  INFO line (`probe <base_url> -> mode=<rerank|chat> (status=...)`) when it
+  auto-detects the provider contract, so consumers can verify which path was
+  taken. `DECISIONS.md` entry moved from "Open questions" to Accepted.
 
 ## [v0.1.0]
 

@@ -25,6 +25,7 @@ from .logging import (
     truncate_for_log,
 )
 from .observer import ObservabilityHub
+from .sse import sse_stream
 
 __version__ = "0.1.1"
 
@@ -42,6 +43,7 @@ __all__ = [
     "redact",
     "set_correlation_id",
     "setup_logging",
+    "sse_stream",
     "timed",
     "truncate_for_log",
 ]

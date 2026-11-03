@@ -7,7 +7,7 @@ from .dense import DenseRetriever
 from .explain import attach_text, explain_result
 from .fusion import FusionStrategy, ReciprocalRankFusion, WeightedScoreFusion
 from .hybrid import HybridRetriever
-from .sparse import BM25Retriever, SparseRetriever, SparseSearchStore
+from .sparse import BM25Retriever, SparseRetriever, SparseSearchStore, supports_sparse
 
 __version__ = "0.1.1"
 
@@ -23,4 +23,5 @@ __all__ = [
     "WeightedScoreFusion",
     "attach_text",
     "explain_result",
+    "supports_sparse",
 ]

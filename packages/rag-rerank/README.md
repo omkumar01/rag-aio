@@ -162,7 +162,8 @@ the LM Studio / qwen3-reranker ambiguity. On the first rerank call it probes
   a JSON array of 0-10 relevance scores; the first `[...]` block is extracted, mapped
   to 0-1, and validated for count. Any parse failure raises `RerankError`.
 
-Detection is cached on the instance (`RemoteReranker.mode`); the probe runs once.
+Detection is cached on the instance (`RemoteReranker.mode`); the probe runs once, and
+its outcome (base URL, selected mode, HTTP status) is logged at INFO level.
 
 ### Pipeline + explainability
 

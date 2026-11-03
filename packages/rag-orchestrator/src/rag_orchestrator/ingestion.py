@@ -9,6 +9,7 @@ ingests of unchanged documents skip the expensive embed/index step.
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -27,17 +28,39 @@ if TYPE_CHECKING:
 __all__ = ["ingest", "ingest_directory"]
 
 
+def _source_fingerprint(source: str) -> str:
+    """Cheap identity fingerprint for a local-file source (``""`` otherwise).
+
+    For an existing filesystem path returns ``"<mtime_ns>:<size>"`` so that
+    edits to the file invalidate previously cached ingest results; for any
+    other source kind (URI, virtual path, missing file) returns an empty
+    string, leaving the key URI-only as before.
+    """
+    try:
+        if os.path.isfile(source):
+            stat = os.stat(source)
+            return f"{stat.st_mtime_ns}:{stat.st_size}"
+    except OSError:
+        return ""
+    return ""
+
+
 def _ingestion_cache_key(source: str, config: PipelineConfig) -> str:
     """Deterministic cache key for a source + ingestion config.
 
-    Keyed by source URI (not content hash): the content hash is unknown until
-    after parsing, and the read probe must match the write key. Content
-    identity is handled separately by dedup.
+    Keyed by source URI plus a cheap source fingerprint (not the content
+    hash, which is unknown until after parsing — the read probe must match
+    the write key). For local files the fingerprint is ``mtime_ns:size``, so
+    re-ingesting a *changed* file produces a different key and cannot be
+    short-circuited by a stale cache entry; for non-file sources the
+    fingerprint is empty and the key reduces to the URI + config hash.
+    Content identity is still handled separately by dedup.
     """
     from rag_cache.keys import cache_key
 
     stage_cfg = config_hash(config.ingestion.model_dump(mode="json"))
-    return cache_key("ingest", source=source, config_hash=stage_cfg)
+    fingerprint = _source_fingerprint(source)
+    return cache_key("ingest", source=source, config_hash=stage_cfg, fingerprint=fingerprint)
 
 
 async def ingest(

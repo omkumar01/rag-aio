@@ -163,9 +163,26 @@ class SparseSearchStore(Protocol):
 ```
 
 A `SparseSearchStore` is a `VectorStore` that *additionally* supports sparse vector
-scoring. `QdrantVectorStore` (from `rag-db-handler`) implements this for learned-sparse
-queries. `VectorIndexer` in `rag-embedder` uses the same structural type via
+scoring. None of the currently shipped `rag-db-handler` backends implement it yet
+(`QdrantVectorStore` and `InMemoryVectorStore` are dense-only); stores that do
+implement `search_sparse` are detected structurally at runtime via `supports_sparse()`
+below. `VectorIndexer` in `rag-embedder` uses the same structural type via
 `SparseCapableStore` (with `upsert_sparse`) to write sparse vectors during ingestion.
+
+#### `supports_sparse(store) -> bool`
+
+Because `SparseSearchStore` is `@runtime_checkable`, capability detection is a plain
+structural `isinstance` check — no source comments or concrete-class knowledge needed.
+Use it before wiring a `SparseRetriever` so the wiring adapts automatically when a
+sparse-capable store (e.g. a future `PgVectorStore`) ships:
+
+```python
+from rag_retrieval import SparseRetriever, supports_sparse
+
+retrievers = [DenseRetriever(store, embedder, config)]
+if supports_sparse(store):
+    retrievers.append(SparseRetriever(store, sparse_embedder, config))
+```
 
 ## Usage Guides
 
@@ -348,7 +365,9 @@ rag-orchestrator ──wires──> dense + hybrid retrievers into the query pip
   `InMemoryVectorStore`) that `DenseRetriever` searches. The same store that received
   vectors from `rag-embedder` at ingestion time is searched here at query time.
   `SparseSearchStore` is a local protocol for stores that additionally implement
-  `search_sparse`; `QdrantVectorStore` supports learned-sparse search.
+  `search_sparse`; no shipped backend implements it yet (`supports_sparse()` returns
+  `False` for `QdrantVectorStore` and `InMemoryVectorStore`), and wiring that detects
+  the capability structurally is future-proof.
 - **rag-embedder** &mdash; the embedders used at query time (`FastEmbedDense`,
   `FastEmbedSparse`) are the same instances configured at ingestion, ensuring the
   query vector space matches the indexed one.

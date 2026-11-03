@@ -12,8 +12,10 @@ Public API:
         :class:`StageConfig` and its subclasses.
     Spec/registry (lazy): :class:`Pipeline`, :class:`PipelineRegistry`,
         :func:`default_pipeline`, :func:`default_registry`.
-    Runtime (lazy): :class:`Orchestrator`, :class:`AskResult`.
-    Wiring (lazy): :class:`OrchestratorServices`, :func:`load_local_services`.
+    Runtime (lazy): :class:`Orchestrator`, :class:`AskResult`, :class:`PreparedQuery`,
+        :class:`StreamDelta` / :class:`StreamFinal` (:data:`StreamEvent`).
+    Wiring (lazy): :class:`OrchestratorServices`, :func:`load_local_services`,
+        :func:`build_mock_services` (:class:`StubGenerator`).
     Ingestion (lazy): :func:`ingest`, :func:`ingest_directory`.
     App (lazy): :func:`create_app` (FastAPI, requires the ``fastapi`` extra).
 """
@@ -38,11 +40,16 @@ if TYPE_CHECKING:
 
     from .config import PipelineConfig as _PipelineConfig
     from .ingestion import ingest, ingest_directory
+    from .mock_services import StubGenerator, build_mock_services
     from .orchestrator import (
         SYSTEM_PROMPT,
         AskResult,
         Orchestrator,
         OrchestratorConfigError,
+        PreparedQuery,
+        StreamDelta,
+        StreamEvent,
+        StreamFinal,
     )
     from .pipeline import (
         Pipeline,
@@ -73,10 +80,16 @@ __all__ = [
     "Pipeline",
     "PipelineConfig",
     "PipelineRegistry",
+    "PreparedQuery",
     "RerankStage",
     "RetrievalStage",
     "StageConfig",
+    "StreamDelta",
+    "StreamEvent",
+    "StreamFinal",
+    "StubGenerator",
     "__version__",
+    "build_mock_services",
     "default_pipeline",
     "default_registry",
     "ingest",
@@ -93,6 +106,10 @@ _LAZY_ATTRS: dict[str, str] = {
     "AskResult": ".orchestrator",
     "Orchestrator": ".orchestrator",
     "OrchestratorConfigError": ".orchestrator",
+    "PreparedQuery": ".orchestrator",
+    "StreamDelta": ".orchestrator",
+    "StreamEvent": ".orchestrator",
+    "StreamFinal": ".orchestrator",
     "Pipeline": ".pipeline",
     "PipelineRegistry": ".pipeline",
     "default_pipeline": ".pipeline",
@@ -100,6 +117,8 @@ _LAZY_ATTRS: dict[str, str] = {
     "NoOpObserver": ".services",
     "OrchestratorServices": ".services",
     "load_local_services": ".services",
+    "StubGenerator": ".mock_services",
+    "build_mock_services": ".mock_services",
 }
 
 

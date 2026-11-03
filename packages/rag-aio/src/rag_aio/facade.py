@@ -6,7 +6,8 @@ contract-bound components from every ``rag-*`` package into an
 (``ingest``, ``ask``, ``app``, async context manager).
 
 Heavy backends (``fastembed``, ``qdrant-client``, ``rag_doc_handler`` parsers,
-``numpy``, …) are imported **lazily inside** :func:`_build_mock_services` so that
+``numpy``, …) are imported **lazily inside** :func:`build_services` and the mock
+wiring it delegates to (:func:`rag_orchestrator.build_mock_services`) so that
 ``import rag_aio`` stays dependency-light.
 """
 
@@ -20,7 +21,6 @@ from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 from rag_core.documents import Document
-from rag_core.generation import GenerationRequest, GenerationResult, Usage
 from rag_core.pipeline_config import PipelineConfig
 
 from rag_aio.config import RAGConfig
@@ -56,57 +56,6 @@ def _require_orchestrator() -> ModuleType:
 
 
 # --------------------------------------------------------------------------- #
-# Offline / stub generator
-# --------------------------------------------------------------------------- #
-
-
-class _StubGenerator:
-    """Deterministic generator with **no HTTP backend**.
-
-    Used by the mock profile so that ``RAG.from_config(RAGConfig.mock())`` works
-    fully offline.  The answer is derived from the retrieved context that the
-    orchestrator embeds in the user message; when no context is available a
-    fixed fallback string is returned.
-    """
-
-    def __init__(self) -> None:
-        self.requests: list[GenerationRequest] = []
-
-    async def generate(self, request: GenerationRequest) -> GenerationResult:
-        self.requests.append(request)
-        return GenerationResult(
-            text=self._answer_from(request),
-            model="stub",
-            finish_reason="stop",
-            usage=Usage(prompt_tokens=0, completion_tokens=0),
-        )
-
-    def stream(self, request: GenerationRequest) -> AsyncIterator[str]:
-        self.requests.append(request)
-        return self._stream(request)
-
-    async def _stream(self, request: GenerationRequest) -> AsyncIterator[str]:
-        answer = self._answer_from(request)
-        for word in answer.split(" "):
-            yield word + " "
-
-    @staticmethod
-    def _answer_from(request: GenerationRequest) -> str:
-        """Extract the retrieved context from the rendered prompt as the answer."""
-        for msg in reversed(request.messages):
-            if msg.role == "user":
-                content = msg.content
-                sep = "\n\nQuestion:"
-                idx = content.rfind(sep)
-                if idx >= 0:
-                    context_text = content[:idx].strip()
-                    if context_text:
-                        return context_text
-                return "Based on the provided context."
-        return "Based on the provided context."
-
-
-# --------------------------------------------------------------------------- #
 # Service composition
 # --------------------------------------------------------------------------- #
 
@@ -134,98 +83,12 @@ def build_services(config: RAGConfig) -> OrchestratorServices:
 def _build_mock_services(config: RAGConfig) -> OrchestratorServices:
     """Build a fully-offline :class:`OrchestratorServices` bag.
 
-    Only pure-Python / dependency-light implementations are used:
-    :class:`MockEmbedder`, :class:`MockSparseEmbedder`,
-    :class:`InMemoryVectorStore`, :class:`MemoryCache`,
-    :class:`HeuristicReranker`, and :class:`_StubGenerator`.
+    Thin adapter over :func:`rag_orchestrator.build_mock_services`, where the
+    mock wiring actually lives (member-only consumers can call it directly
+    without this facade).  Only config-derived values are mapped through.
     """
-    # All heavy imports live inside this function so ``import rag_aio`` stays light.
     orchestrator = _require_orchestrator()
-    OrchestratorServices = orchestrator.OrchestratorServices
-    NoOpObserver = orchestrator.NoOpObserver
-
-    from rag_cache.backends.memory import MemoryCache
-    from rag_cache.stats import InstrumentedCache
-    from rag_context.builder import ContextBuilderImpl
-    from rag_context.config import ContextConfig
-    from rag_context.tokenizer import ContextTokenizer, WhitespaceCounter
-    from rag_db_handler.memory_store import InMemoryVectorStore
-    from rag_doc_handler import default_pipeline
-    from rag_embedder.chunking.base import ChunkerConfig
-    from rag_embedder.chunking.registry import create_chunker
-    from rag_embedder.embedding import MockEmbedder, MockSparseEmbedder
-    from rag_embedder.pipeline import EmbeddingPipeline
-    from rag_embedder.tokenization import SimpleTokenizer
-    from rag_llm_provider.config import ProvidersConfig
-    from rag_llm_provider.registry import ProviderRegistry
-    from rag_llm_provider.routing import ModelRouter
-    from rag_query.config import QueryConfig
-    from rag_query.engine import QueryEngine
-    from rag_rerank.config import RerankConfig
-    from rag_rerank.local import HeuristicReranker
-    from rag_rerank.pipeline import RerankPipeline
-    from rag_retrieval.config import RetrievalConfig
-    from rag_retrieval.dense import DenseRetriever
-    from rag_retrieval.fusion import ReciprocalRankFusion
-    from rag_retrieval.hybrid import HybridRetriever
-
-    dim = config.embedder.dim
-    store = InMemoryVectorStore(vector_size=dim)
-    embedder = MockEmbedder(dim=dim)
-    sparse_embedder = MockSparseEmbedder()
-
-    chunker = create_chunker(ChunkerConfig(strategy="recursive"), SimpleTokenizer())
-    ingestion = default_pipeline()
-    embedding_pipeline = EmbeddingPipeline(
-        chunker=chunker,
-        embedder=embedder,
-        sparse_embedder=sparse_embedder,
-        store=store,
-    )
-
-    ret_cfg = RetrievalConfig(strategies=["dense"], top_k=10, candidate_k=50)
-    hybrid = HybridRetriever(
-        retrievers=[DenseRetriever(store, embedder, ret_cfg)],
-        fusion=ReciprocalRankFusion(),
-        config=ret_cfg,
-    )
-    fusion = ReciprocalRankFusion()
-
-    reranker = RerankPipeline(
-        HeuristicReranker(RerankConfig(max_candidates=50, top_k=10)),
-        RerankConfig(),
-    )
-    ctx_builder = ContextBuilderImpl(
-        ContextTokenizer(WhitespaceCounter()),
-        ContextConfig(token_budget=2048, reserve_for_answer=64),
-    )
-    query_engine = QueryEngine(QueryConfig())
-
-    providers_config = ProvidersConfig.local_default()
-    registry = ProviderRegistry(providers_config)
-
-    return OrchestratorServices(
-        query_engine=query_engine,
-        retrievers=[hybrid],
-        hybrid_retriever=None,
-        fusion=fusion,
-        reranker=reranker,
-        context_builder=ctx_builder,
-        generator=_StubGenerator(),
-        fallback_generators=[],
-        model_router=ModelRouter(registry),
-        provider_registry=registry,
-        loader=ingestion.loader,
-        parser_registry=ingestion.registry,
-        ingestion_pipeline=ingestion,
-        chunker=chunker,
-        embedder=embedder,
-        sparse_embedder=sparse_embedder,
-        vector_store=store,
-        embedding_pipeline=embedding_pipeline,
-        cache=InstrumentedCache(MemoryCache(max_items=4096)),
-        observer=NoOpObserver(),
-    )
+    return orchestrator.build_mock_services(vector_size=config.embedder.dim)
 
 
 # --------------------------------------------------------------------------- #

@@ -8,7 +8,7 @@ license = { text = "MIT" }
 dependencies = [
     "rag-aio-core",
     "qdrant-client>=1.10",
-    "sqlalchemy>=2.0",
+    "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
 ]
 

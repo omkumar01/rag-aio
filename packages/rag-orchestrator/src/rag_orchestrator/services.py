@@ -11,10 +11,12 @@ keeps :mod:`rag_orchestrator` importable without pulling in heavy backends
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
+from rag_core.lifecycle import aclose_component
 from rag_core.protocols import (
     Cache,
     Chunker,
@@ -42,6 +44,14 @@ if TYPE_CHECKING:
     from rag_retrieval.fusion import FusionStrategy
 
 __all__ = ["NoOpObserver", "OrchestratorServices", "load_local_services"]
+
+
+_aclose_component = aclose_component
+"""Close *obj* if it is closable; returns whether a close method was found.
+
+Re-exported from :func:`rag_core.lifecycle.aclose_component` so services and
+examples share one lifecycle implementation.
+"""
 
 
 class NoOpObserver:
@@ -138,12 +148,33 @@ class OrchestratorServices:
     embedding_pipeline: EmbeddingPipeline | None = None
     cache: Cache | None = None
     observer: Observer = field(default_factory=NoOpObserver)
+    _closed: bool = field(default=False, init=False, repr=False)
 
     def ensure_retrievers(self) -> list[Retriever]:
         """Return the effective retriever list (hybrid first if present)."""
         if self.hybrid_retriever is not None:
             return [self.hybrid_retriever, *self.retrievers]
         return list(self.retrievers)
+
+    async def aclose(self) -> None:
+        """Release backend resources; idempotent (safe to call more than once).
+
+        Closes ``vector_store``, ``document_store`` and ``cache`` first, then
+        any other owned component that happens to be closable. Components
+        without an ``aclose``/``close`` method (and ``None`` fields) are
+        skipped silently.
+        """
+        if self._closed:
+            return
+        self._closed = True
+        primaries = (self.vector_store, self.document_store, self.cache)
+        skip = {"vector_store", "document_store", "cache", "_closed"}
+        others = [
+            value for name, value in vars(self).items() if name not in skip and value is not None
+        ]
+        for component in (*primaries, *others):
+            if component is not None:
+                await _aclose_component(component)
 
 
 def _memory_cache() -> MemoryCache:
@@ -157,6 +188,7 @@ def load_local_services(
     qdrant_path: str = "./data/qdrant",
     db_url: str = "sqlite+aiosqlite:///./data/rag.db",
     lm_studio_url: str = "http://localhost:1234/v1",
+    document_db_url: str | None = None,
 ) -> OrchestratorServices:
     """Wire the ``local_default`` profile against local backends.
 
@@ -164,6 +196,14 @@ def load_local_services(
     imported *lazily inside this function* so ``import rag_orchestrator`` stays
     cheap and dependency-light. Callers must have the relevant extras installed
     (``qdrant-client``, ``fastembed``, ``rag-generation``, etc.).
+
+    Args:
+        qdrant_path: On-disk path for the embedded Qdrant vector store.
+        db_url: Deprecated alias for ``document_db_url``; still honored but
+            emits a :class:`DeprecationWarning` when it is what takes effect.
+        lm_studio_url: Base URL of the (OpenAI-compatible) generation server.
+        document_db_url: SQLAlchemy URL for the document store. When given it
+            wins over ``db_url``; when omitted, ``db_url`` is used (deprecated).
 
     Backends:
       * vectors — on-disk Qdrant (local mode).
@@ -176,6 +216,15 @@ def load_local_services(
       * context — token-budgeted builder (whitespace tokenizer).
       * generation — LM Studio (OpenAI-compatible) via GenerationService.
     """
+    effective_document_db_url = document_db_url
+    if effective_document_db_url is None:
+        warnings.warn(
+            "db_url is deprecated, use document_db_url",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        effective_document_db_url = db_url
+
     # Local imports keep the module graph light until this is called.
     from rag_cache.backends.memory import MemoryCache
     from rag_cache.stats import InstrumentedCache
@@ -210,11 +259,12 @@ def load_local_services(
     from rag_retrieval.dense import DenseRetriever
     from rag_retrieval.fusion import ReciprocalRankFusion
     from rag_retrieval.hybrid import HybridRetriever
+    from rag_retrieval.sparse import SparseRetriever, supports_sparse
 
     dense = FastEmbedDense(model_name="BAAI/bge-small-en-v1.5")
     sparse = FastEmbedSparse(model_name="Qdrant/bm25")
     store = create_vector_store(VectorStoreConfig(mode="local", path=qdrant_path))
-    doc_store = create_sql_store(SQLStoreConfig(url=db_url))
+    doc_store = create_sql_store(SQLStoreConfig(url=effective_document_db_url))
     _kv = create_kv_store(KeyValueStoreConfig(backend="memory"))
 
     chunker = create_chunker(ChunkerConfig(strategy="recursive"), SimpleTokenizer())
@@ -223,14 +273,18 @@ def load_local_services(
     )
 
     ret_cfg = RetrievalConfig(strategies=["dense"], top_k=10, candidate_k=50)
-    # Dense-only hybrid wiring: QdrantVectorStore does not implement the
-    # SparseSearchStore protocol (search_sparse), so sparse retrieval would be
-    # a lie at the type level. BM25-in-process is the documented extension
-    # point once a corpus provider is wired.
+    # Sparse wiring is feature-detected via the runtime-checkable
+    # SparseSearchStore protocol: stores that implement search_sparse (today
+    # none of the shipped backends do — QdrantVectorStore is dense-only; e.g.
+    # a future PgVectorStore may) automatically get a SparseRetriever added to
+    # the hybrid. Dense-only stores keep the exact dense-only wiring below.
+    # BM25-in-process remains the documented extension point once a corpus
+    # provider is wired.
+    retrievers: list[Retriever] = [DenseRetriever(store, dense, ret_cfg)]
+    if supports_sparse(store):
+        retrievers.append(SparseRetriever(store, sparse, ret_cfg))
     hybrid = HybridRetriever(
-        retrievers=[
-            DenseRetriever(store, dense, ret_cfg),
-        ],
+        retrievers=retrievers,
         fusion=ReciprocalRankFusion(),
         config=ret_cfg,
     )

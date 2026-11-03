@@ -36,15 +36,21 @@ class StubQueryEngine:
 
 
 class StubRetriever:
-    """Returns canned hits regardless of the query."""
+    """Returns canned hits regardless of the query.
+
+    Records every received :class:`~rag_core.Query` so tests can assert on
+    threaded fields (e.g. ``namespace``).
+    """
 
     def __init__(self, hits: list[RetrievalHit], strategy: str = "dense") -> None:
         self.hits = hits
         self.strategy = strategy
         self.calls = 0
+        self.queries: list[Query] = []
 
     async def retrieve(self, query: Query) -> RetrievalResult:
         self.calls += 1
+        self.queries.append(query)
         return RetrievalResult(query_id=query.id, hits=list(self.hits), strategies=[self.strategy])
 
 

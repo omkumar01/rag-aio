@@ -133,10 +133,12 @@ async for delta in await orchestrator.ask("Tell me a story", stream=True):
 
 # Per-request overrides are folded into a fresh PipelineConfig copy.
 result = await orchestrator.ask("...", overrides={"top_k": 50, "temperature": 0.0})
+
+# Namespace isolation: threaded into the Query so retrievers filter by store namespace.
+result = await orchestrator.ask("...", namespace="tenant-a")
 ```
 
-`ask` runs `_process_query → _retrieve → _fuse → _rerank → _build_context →
-_generate → _build_result`, each timed into `AskResult.timings_ms`
+`ask` runs `prepare → _generate → _build_result`, each timed into `AskResult.timings_ms`
 (`query`, `retrieve`, `rerank`, `context`, `generate`, `total`/`total_ms`).
 
 #### `AskResult`
@@ -152,6 +154,57 @@ _generate → _build_result`, each timed into `AskResult.timings_ms`
 
 `metrics.cached` reflects whether the generation result was served from the response
 cache (when wired); it is always present and defaults to `False`.
+
+### prepare / ask_stream / stream_events (the split runtime API)
+
+`ask` composes three public primitives you can also drive directly. All accept the
+same keyword arguments (`overrides`, `query_id`, `correlation_id`, `namespace`);
+`namespace` is threaded into the `Query` object so retrievers pass it down to their
+`VectorStore` search/upsert filters.
+
+```python
+from rag_orchestrator import PreparedQuery, StreamDelta, StreamEvent, StreamFinal
+
+# prepare: run query → retrieve → fuse → rerank → context → citations → render
+# WITHOUT generating. Everything needed for generation, plus per-stage timings.
+prepared = await orchestrator.prepare("...", namespace="tenant-a")
+prepared.request  # rendered GenerationRequest (stream=False)
+prepared.context  # token-budgeted Context | None
+prepared.citations  # list[Citation]
+prepared.timings_ms  # {"query": ..., "retrieve": ..., "rerank": ..., "context": ...}
+prepared.query_id  # stable within one prepare/ask
+
+# ask_stream: raw text deltas — the same frames ask(stream=True) yields.
+async for delta in await orchestrator.ask_stream("..."):
+    print(delta, end="", flush=True)
+
+# stream_events: typed frames — StreamDelta per generation delta, then exactly one
+# terminal StreamFinal carrying the metadata raw streaming discards.
+async for event in await orchestrator.stream_events("...", query_id="abc"):
+    if isinstance(event, StreamDelta):
+        print(event.text, end="", flush=True)
+    else:  # StreamFinal
+        print(event.answer, event.citations, event.timings_ms, event.query_id)
+```
+
+Notes:
+
+- Both streaming methods call `prepare()` exactly once, then stream from the
+  generator; timeouts still surface as `OperationTimeout`.
+- `ask(stream=True)` remains supported and simply delegates to `ask_stream`.
+- `PreparedQuery`, `StreamDelta`, `StreamFinal` and the `StreamEvent` alias are
+  re-exported from the package root.
+
+#### `PreparedQuery` / `StreamFinal`
+
+| Field        | Type | Notes |
+| ------------ | ---- | ----- |
+| `request`    | `GenerationRequest` | Rendered prompt + generation params (prepare only). |
+| `context`    | `Context \| None` | Token-budgeted evidence. |
+| `citations`  | `list[Citation]` | Numeric `[n]`-style citations. |
+| `timings_ms` | `dict[str, float]` | Per-stage wall-clock timings. |
+| `query_id`   | `str` | Stable within one prepare/ask. |
+| `answer`     | `str` | Fully accumulated delta text (StreamFinal only). |
 
 ### OrchestratorServices (the component bag)
 
@@ -173,6 +226,20 @@ Key fields: `query_engine`, `retrievers`, `hybrid_retriever`, `fusion`, `reranke
 present) followed by the dense/sparse list. `NoOpObserver` is the default `Observer`
 implementation — a safe discard for components that don't opt into observability.
 
+#### `OrchestratorServices.aclose()`
+
+```python
+await services.aclose()  # release backend resources
+await services.aclose()  # idempotent: second call is a no-op
+```
+
+Idempotent, ordered teardown of the bag's owned backends: `vector_store` →
+`document_store` → `cache` first, then any other owned component that happens to
+expose `aclose`/`close` (both async and sync close methods are awaited/handled;
+components without either are skipped silently, as are `None` fields). Use it in a
+`try/finally` so on-disk stores (Qdrant local mode, SQLite) are released before
+temp-directory cleanup — on Windows, open handles block deletion.
+
 `_ServiceGenerator` adapts a `rag_generation.GenerationService` to the `Generator`
 protocol: `generate` delegates to the service (reusing its router + fallback chain
 for free), while `stream` resolves the effective provider and forwards to its native
@@ -185,7 +252,7 @@ from rag_orchestrator import load_local_services, PipelineConfig
 
 services = load_local_services(
     qdrant_path="./data/qdrant",
-    db_url="sqlite+aiosqlite:///./data/rag.db",
+    document_db_url="sqlite+aiosqlite:///./data/rag.db",
     lm_studio_url="http://localhost:1234/v1",
 )
 orchestrator = Orchestrator(services)  # picks up PipelineConfig.local_default()
@@ -195,8 +262,41 @@ orchestrator = Orchestrator(services)  # picks up PipelineConfig.local_default()
 imports every heavy backend lazily inside the function. It returns a bag with FastEmbed
 dense + sparse embedders, a recursive chunker, a dense retriever, a heuristic Jaccard
 reranker, a token-budgeted context builder, and an LM Studio `OpenAICompatibleProvider`
-wrapped in a `GenerationService`. (`rag-aio`'s `build_services` mirrors this for the
-`"fastembed"` backend and substitutes `_StubGenerator` only for the `"mock"` backend.)
+wrapped in a `GenerationService`. (`rag-aio`'s `build_services` delegates here for the
+`"fastembed"` backend and to `build_mock_services` for the `"mock"` backend.)
+
+### Mock services (fully-offline wiring)
+
+```python
+from rag_orchestrator import Orchestrator, build_mock_services
+
+services = build_mock_services()  # no services running, no downloads
+orchestrator = Orchestrator(services)  # then ingest + ask, fully offline
+
+services = build_mock_services(vector_size=128, cache_max_items=1024)  # tuned
+```
+
+`build_mock_services` assembles the offline profile with a single call — no facade
+required. Members-only consumers that depend on `rag-aio-orchestrator` directly get the
+same stack `rag-aio`'s `RAGConfig.mock()` uses:
+
+| Parameter         | Default | Meaning |
+| ----------------- | ------- | ------- |
+| `vector_size`     | `384`   | Embedding dimensionality (`MockEmbedder.dim` + `InMemoryVectorStore.vector_size`). |
+| `cache_max_items` | `4096`  | Capacity of the instrumented `MemoryCache`. |
+
+Components wired: `MockEmbedder` + `MockSparseEmbedder` (deterministic, hash-based),
+`InMemoryVectorStore`, a recursive chunker, a dense-only `HybridRetriever` with
+`ReciprocalRankFusion`, `HeuristicReranker`, a token-budgeted `ContextBuilderImpl`,
+`QueryEngine`, `StubGenerator` (deterministic answers extracted from the rendered prompt
+context; implements both `generate` and `stream`), and an `InstrumentedCache(MemoryCache)`.
+`document_store` is intentionally left unset. Like `load_local_services`, all sibling
+`rag-*` imports are lazy inside the function.
+
+The document-store URL is passed as `document_db_url`. The old `db_url` keyword still
+works but is **deprecated**: whenever `document_db_url` is not supplied (including
+relying on the old default), a `DeprecationWarning` is emitted — migrate to
+`document_db_url="sqlite+aiosqlite:///./data/rag.db"`.
 
 ### Ingestion (stage-cached)
 
@@ -207,12 +307,15 @@ document = await ingest(services, "./contracts.pdf")  # load -> parse -> dedup -
 docs = await ingest_directory(services, "./folder", recursive=True)
 ```
 
-Ingestion is cached per `source + ingestion-config hash` (via
+Ingestion is cached per `source + ingestion-config hash + source fingerprint` (via
 `rag_core.ids.config_hash` and `rag_cache.keys.cache_key`): re-ingesting an unchanged
 source short-circuits from cache when `PipelineConfig.cache_reads` is enabled, and
-writes are gated by `cache_writes`. Unsupported formats raise
-`UnsupportedFormatError` (skipped in directory mode); other failures raise
-`IngestionError`.
+writes are gated by `cache_writes`. For local files the fingerprint is
+`<mtime_ns>:<size>`, so editing a file on disk changes the cache key and the stale
+entry cannot short-circuit re-ingestion (out-of-band vector purges and file edits are
+safe); non-file sources (URIs, virtual paths) have an empty fingerprint and keep the
+old URI-only keying. Unsupported formats raise `UnsupportedFormatError` (skipped in
+directory mode); other failures raise `IngestionError`.
 
 ### FastAPI application
 
@@ -378,8 +481,11 @@ tests/
   test_smoke.py         # import / version guard
   test_config.py        # local_default, schema_version, merge_overrides routing
   test_pipeline.py      # Pipeline + PipelineRegistry (add/get/list/remove, save/load YAML)
-  test_orchestrator.py  # ask, streaming, timeout, fallback, metrics, cache flag
-  test_ingest.py        # stage caching, dedup, UnsupportedFormatError skipping
+  test_orchestrator.py  # ask, prepare, ask_stream, stream_events, namespace, timeout, fallback, metrics
+  test_ingest.py        # stage caching (incl. source fingerprint), dedup, UnsupportedFormatError skipping
+  test_services.py      # OrchestratorServices.aclose() (order, idempotency, sync/async close)
+  test_load_local_services.py  # document_db_url resolution + db_url DeprecationWarning
+  test_mock_services.py # build_mock_services wiring, StubGenerator, offline ingest + ask
   test_app.py           # FastAPI endpoints (/health, /ready, /metrics, /v1/ask, /v1/ingest, /v1/jobs)
 ```
 
@@ -408,9 +514,9 @@ Heavy backends (`qdrant_client`, `fastembed`, `bm25s`, NumPy) are imported lazil
   `rag_generation.GenerationService` to the `Generator` protocol while resolving the
   effective provider through `rag_llm_provider.ModelRouter`/`ProviderRegistry`.
 - **Is consumed by `rag-aio`**: `RAG.build_services` either calls `load_local_services`
-  (fastembed backend) or assembles the mock bag; `get_app`/`app` delegate to
-  `create_app`. The orchestrator owns the runtime; `rag-aio` owns the CLI + facade +
-  module-level app instance.
+  (fastembed backend) or delegates to `build_mock_services` (mock backend);
+  `get_app`/`app` delegate to `create_app`. The orchestrator owns the runtime; `rag-aio`
+  owns the CLI + facade + module-level app instance.
 - **Ingestion** reuses `rag_doc_handler`'s `default_pipeline` (loader + parser registry)
   and `rag_embedder`'s `EmbeddingPipeline` (chunk → embed → index), adding stage caching
   keyed on content + config hashes.

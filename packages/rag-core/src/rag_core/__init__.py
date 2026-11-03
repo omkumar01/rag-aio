@@ -44,6 +44,7 @@ from .evaluation import EvaluationResult, MetricResult, QueryEvaluation
 from .generation import FinishReason, GenerationRequest, GenerationResult, Message, Role, Usage
 from .ids import config_hash, content_hash, new_id, stable_id
 from .jobs import JobStatus, PipelineJob
+from .lifecycle import Closable, aclose_component
 from .models_info import HealthState, ModelInfo, ProviderInfo, ProviderKind
 from .pipeline_config import (
     ContextStage,
@@ -73,6 +74,7 @@ __all__ = [
     "ChunkMetadata",
     "ChunkingError",
     "Citation",
+    "Closable",
     "ConfigError",
     "Context",
     "ContextError",
@@ -131,6 +133,7 @@ __all__ = [
     "StorageError",
     "UnsupportedFormatError",
     "Usage",
+    "aclose_component",
     "config_hash",
     "content_hash",
     "from_json",

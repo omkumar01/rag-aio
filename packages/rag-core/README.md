@@ -23,6 +23,8 @@ depends on `rag-core` — never the reverse.
   [ADR-0002](https://github.com/omkumar01/rag-aio/blob/main/adr/ADR-0002-protocol-based-contracts.md)).
 * **Utility functions** -- deterministic identifiers and content hashes
   (`new_id`, `content_hash`, `stable_id`, `config_hash`).
+* **Lifecycle helpers** -- `Closable` (runtime-checkable protocol) and
+  `aclose_component` for best-effort uniform shutdown of sync/async resources.
 * **SerDe helpers** -- compact JSON round-trip helpers (`to_json`, `from_json`).
 * **Error taxonomy** -- a single `RagError` base with a structured `code` and
   `details` dict, plus 23 typed subclasses organized by pipeline stage.
@@ -157,6 +159,7 @@ src/rag_core/
   jobs.py           PipelineJob, JobStatus
   models_info.py    ModelInfo, ProviderInfo, ProviderKind, HealthState
   ids.py            new_id, content_hash, stable_id, config_hash
+  lifecycle.py      Closable, aclose_component
   serde.py          to_json, from_json
   errors.py         RagError + 23 subclasses
 ```
@@ -184,11 +187,13 @@ doc = Document(
 )
 # content_hash is auto-derived from source_uri + text for stable deduplication
 assert doc.content_hash
+# text_hash is auto-derived from the text alone (source-uri independent)
+assert doc.text_hash == content_hash(doc.text)
 ```
 
 | Model | Key fields |
 |---|---|
-| `Document` | `id`, `source_uri`, `text`, `metadata`, `pages`, `assets`, `tenant`, `namespace`, `content_hash`, `created_at`, `updated_at` |
+| `Document` | `id`, `source_uri`, `text`, `metadata`, `pages`, `assets`, `tenant`, `namespace`, `content_hash`, `text_hash`, `created_at`, `updated_at` |
 | `DocumentMetadata` | `title`, `mime_type`, `language`, `author`, `created_at`, `modified_at`, `custom` |
 | `DocumentPage` | `page_number`, `text`, `width`, `height`, `image_ref`, `language`, `blocks` |
 | `PageBlock` | `page_id`, `kind` (text/heading/table/figure/...), `text`, `bbox`, `confidence`, `order` |
@@ -465,6 +470,28 @@ restored = from_json(serialized, Document)
 assert restored == doc
 ```
 
+### Lifecycle helpers (`lifecycle.py`)
+
+```python
+import asyncio
+from rag_core import Closable, aclose_component
+
+
+# Uniform shutdown for mixed sync/async resources (stores, clients, engines):
+async def shutdown(components: list[object]) -> None:
+    for component in components:
+        # prefers aclose() over close(); awaits the result if it is awaitable;
+        # returns False for objects exposing neither method (never raises).
+        assert await aclose_component(component)
+
+
+class Resource:
+    async def aclose(self) -> None: ...
+
+
+assert isinstance(Resource(), Closable)  # runtime_checkable
+```
+
 ### Error handling
 
 ```python
@@ -617,7 +644,8 @@ Four test modules cover the package:
 |---|---|
 | `tests/test_smoke.py` | Version string, basic import |
 | `tests/test_ids_errors.py` | ID uniqueness, hash determinism, error hierarchy, config hash on Pydantic models |
-| `tests/test_models.py` | Document/chunk/embedding/retrieval/context/generation round-trips, validation constraints (BoundingBox ordering, progress bounds, dimension inference) |
+| `tests/test_models.py` | Document/chunk/embedding/retrieval/context/generation round-trips, validation constraints (BoundingBox ordering, progress bounds, dimension inference), `text_hash` derivation |
+| `tests/test_lifecycle.py` | `Closable` conformance and `aclose_component` (async-only, sync-only, awaitable-returning, neither, aclose preference) |
 | `tests/test_protocols.py` | Structural conformance: minimal reference implementations of every protocol pass `isinstance` checks |
 
 Tests use the `unit` marker and require no external services.

@@ -11,6 +11,7 @@ from rag_aio.config import (
     GenerationConfig,
     RAGConfig,
     StorageConfig,
+    env_overrides,
 )
 
 # --------------------------------------------------------------------------- #
@@ -153,3 +154,124 @@ def test_secret_by_reference() -> None:
     cfg = RAGConfig(generation=GenerationConfig(api_key_ref="MY_API_KEY"))
     dumped = cfg.model_dump(mode="json")
     assert dumped["generation"]["api_key_ref"] == "MY_API_KEY"
+
+
+# --------------------------------------------------------------------------- #
+# RAG_AIO_ environment overrides (ADR-0006 tier: defaults -> TOML -> env)
+# --------------------------------------------------------------------------- #
+
+
+def test_env_overrides_nests_on_double_underscore() -> None:
+    env = {
+        "RAG_AIO_PIPELINE__EMBEDDING__POLICY": "mock",
+        "RAG_AIO_STORAGE__DB_URL": "sqlite+aiosqlite:///./data/other.db",
+    }
+    assert env_overrides(env=env) == {
+        "pipeline": {"embedding": {"policy": "mock"}},
+        "storage": {"db_url": "sqlite+aiosqlite:///./data/other.db"},
+    }
+
+
+def test_env_overrides_json_coercion_and_raw_string_fallback() -> None:
+    env = {
+        "RAG_AIO_GENERATION__TEMPERATURE": "0.5",  # JSON number -> float
+        "RAG_AIO_GENERATION__MAX_TOKENS": "512",  # JSON number -> int
+        "RAG_AIO_GENERATION__BASE_URL": "http://localhost:1234/v1",  # invalid JSON -> raw str
+        "RAG_AIO_EMBEDDER__BACKEND": "mock",  # invalid JSON -> raw str
+    }
+    assert env_overrides(env=env) == {
+        "generation": {
+            "temperature": 0.5,
+            "max_tokens": 512,
+            "base_url": "http://localhost:1234/v1",
+        },
+        "embedder": {"backend": "mock"},
+    }
+
+
+def test_env_overrides_single_segment_sets_top_level_value() -> None:
+    env = {"RAG_AIO_PIPELINE": "true"}
+    assert env_overrides(env=env) == {"pipeline": True}
+
+
+def test_env_overrides_drops_unknown_top_level_keys() -> None:
+    """Unknown top-level segments are dropped so extra="forbid" stays meaningful."""
+    env = {
+        "RAG_AIO_ASK__STREAM": "true",
+        "RAG_AIO_NOT_A_FIELD": "1",
+        "RAG_AIO_GENERATION__TEMPERATURE": "0.1",
+    }
+    assert env_overrides(env=env) == {"generation": {"temperature": 0.1}}
+
+
+def test_env_overrides_ignores_non_prefixed_and_empty_names() -> None:
+    env = {
+        "OTHER_STORAGE__DB_URL": "x",
+        "RAG_AIO_": "empty remainder",
+        "rag_aio_generation__temperature": "0.3",  # prefix is case-sensitive
+    }
+    assert env_overrides(env=env) == {}
+
+
+def test_env_overrides_empty_env_returns_empty_dict() -> None:
+    assert env_overrides(env={}) == {}
+
+
+def test_from_file_env_overrides_toml_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Env wins over TOML per ADR-0006 precedence (defaults -> TOML -> env)."""
+    toml_str = """\
+[storage]
+db_url = "sqlite+aiosqlite:///./data/from-toml.db"
+
+[generation]
+temperature = 0.7
+"""
+    path = tmp_path / "config.toml"
+    path.write_text(toml_str, encoding="utf-8")
+    monkeypatch.setenv("RAG_AIO_STORAGE__DB_URL", "sqlite+aiosqlite:///./data/from-env.db")
+
+    cfg = RAGConfig.from_file(path)
+    assert cfg.storage.db_url == "sqlite+aiosqlite:///./data/from-env.db"
+    # Untouched TOML values survive the merge.
+    assert cfg.generation.temperature == 0.7
+
+
+def test_from_file_env_only_override_without_toml_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An env var for a key absent from the TOML fills it in (env-only path)."""
+    toml_str = """\
+[embedder]
+backend = "mock"
+"""
+    path = tmp_path / "minimal.toml"
+    path.write_text(toml_str, encoding="utf-8")
+    monkeypatch.setenv("RAG_AIO_GENERATION__BASE_URL", "http://localhost:9999/v1")
+
+    cfg = RAGConfig.from_file(path)
+    assert cfg.embedder.backend == "mock"
+    assert cfg.generation.base_url == "http://localhost:9999/v1"
+
+
+def test_from_file_env_json_coercion_types(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """JSON-coercible env values arrive typed, not as strings."""
+    path = tmp_path / "empty.toml"
+    path.write_text("", encoding="utf-8")
+    monkeypatch.setenv("RAG_AIO_GENERATION__TEMPERATURE", "0.2")
+
+    cfg = RAGConfig.from_file(path)
+    assert cfg.generation.temperature == 0.2
+
+
+def test_from_file_env_unknown_top_level_key_is_dropped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unknown RAG_AIO_ top-level keys are dropped, not passed to validation."""
+    path = tmp_path / "empty.toml"
+    path.write_text("", encoding="utf-8")
+    monkeypatch.setenv("RAG_AIO_ASK__STREAM", "true")
+
+    cfg = RAGConfig.from_file(path)  # must not raise ValidationError
+    assert cfg == RAGConfig()

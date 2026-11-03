@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Any
 
@@ -191,6 +192,61 @@ async def test_unset_api_key_env_raises() -> None:
     reranker = make_reranker(handler, api_key_ref="RERANK_DEFINITELY_MISSING_VAR_X")
     with pytest.raises(RerankError):
         await reranker.rerank(make_query(), make_hits())
+    await reranker.aclose()
+
+
+@pytest.mark.asyncio
+async def test_probe_outcome_logged_at_info_rerank_mode(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    results = [{"index": 0, "score": 0.9}, {"index": 1, "score": 0.3}]
+    reranker = make_reranker(_rerank_handler(results))
+    with caplog.at_level(logging.INFO, logger="rag_rerank.remote"):
+        await reranker.rerank(make_query(), make_hits())
+    assert reranker.mode == "rerank"
+    probe_records = [r for r in caplog.records if r.name == "rag_rerank.remote"]
+    assert len(probe_records) == 1
+    message = probe_records[0].getMessage()
+    assert "probe" in message
+    assert "mode=rerank" in message
+    assert "status=200" in message
+    assert "http://localhost:1234" in message
+    await reranker.aclose()
+
+
+@pytest.mark.asyncio
+async def test_probe_outcome_logged_at_info_chat_mode(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/rerank":
+            return httpx.Response(404)
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"role": "assistant", "content": "[8.0, 2.5, 7.0]"}}]},
+        )
+
+    reranker = make_reranker(handler)
+    with caplog.at_level(logging.INFO, logger="rag_rerank.remote"):
+        await reranker.rerank(make_query(), make_hits())
+    assert reranker.mode == "chat"
+    probe_records = [r for r in caplog.records if r.name == "rag_rerank.remote"]
+    assert len(probe_records) == 1
+    message = probe_records[0].getMessage()
+    assert "mode=chat" in message
+    assert "status=404" in message
+    await reranker.aclose()
+
+
+@pytest.mark.asyncio
+async def test_probe_logs_once_not_per_call(caplog: pytest.LogCaptureFixture) -> None:
+    results = [{"index": 0, "score": 0.9}, {"index": 1, "score": 0.3}]
+    reranker = make_reranker(_rerank_handler(results))
+    with caplog.at_level(logging.INFO, logger="rag_rerank.remote"):
+        await reranker.rerank(make_query(), make_hits())
+        await reranker.rerank(make_query(), make_hits())
+    probe_records = [r for r in caplog.records if r.name == "rag_rerank.remote"]
+    assert len(probe_records) == 1
     await reranker.aclose()
 
 

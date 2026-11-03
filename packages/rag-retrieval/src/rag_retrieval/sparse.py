@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypeGuard, runtime_checkable
 
 import bm25s
 from rag_core.protocols import Embedder as _Embedder  # noqa: F401  (kept for symmetry)
@@ -29,6 +29,21 @@ class SparseSearchStore(Protocol):
         namespace: str | None = None,
     ) -> list[RetrievalHit]:
         """Return the top-``k`` sparse-matching hits."""
+
+
+def supports_sparse(store: Any) -> TypeGuard[SparseSearchStore]:
+    """Feature-detect whether *store* supports sparse (learned-sparse/BM25) search.
+
+    Uses the :class:`SparseSearchStore` protocol's runtime structural check, so
+    it detects the ``search_sparse`` capability on any object without caring
+    about its concrete class. Call this before constructing a
+    :class:`SparseRetriever` over a store::
+
+        if supports_sparse(store):
+            retrievers.append(SparseRetriever(store, sparse, config))
+    """
+
+    return isinstance(store, SparseSearchStore)
 
 
 class SparseRetriever:
@@ -218,4 +233,4 @@ def _ndim2(arr: Any) -> bool:
     return bool(ndim == 2)
 
 
-__all__ = ["BM25Retriever", "SparseRetriever", "SparseSearchStore"]
+__all__ = ["BM25Retriever", "SparseRetriever", "SparseSearchStore", "supports_sparse"]

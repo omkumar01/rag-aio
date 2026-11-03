@@ -87,6 +87,8 @@ class Document(RagBaseModel):
 
     ``content_hash`` is derived from the source URI and normalized text so
     duplicate detection and incremental ingestion are stable across runs.
+    ``text_hash`` is derived from the text alone, so documents with identical
+    content compare equal regardless of where they were sourced from.
     """
 
     id: str = Field(default_factory=new_id)
@@ -98,6 +100,7 @@ class Document(RagBaseModel):
     tenant: str | None = None
     namespace: str | None = None
     content_hash: str = ""
+    text_hash: str = ""
     parser_name: str | None = None
     parser_version: str | None = None
     created_at: datetime = Field(default_factory=_utcnow)
@@ -106,3 +109,5 @@ class Document(RagBaseModel):
     def model_post_init(self, __context: object) -> None:
         if not self.content_hash:
             self.content_hash = content_hash(f"{self.source_uri}\x00{self.text}")
+        if not self.text_hash:
+            self.text_hash = content_hash(self.text)

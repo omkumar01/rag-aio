@@ -25,15 +25,22 @@ uv add -e packages/rag-db-handler
 Install a specific storage backend via an optional extra:
 
 ```bash
-# PostgreSQL instead of sqlite (asyncpg)
+# PostgreSQL instead of sqlite (asyncpg) — works today through the SQL stores
 uv add -e packages/rag-db-handler[postgres]
 
-# FAISS vector store instead of Qdrant (faiss-cpu)
+# RESERVED — no FaissStore implementation yet; installs the faiss-cpu SDK only
 uv add -e packages/rag-db-handler[faiss]
 
-# pgvector (PostgreSQL vector extension) instead of Qdrant
+# RESERVED — no PgVectorStore implementation yet; installs the pgvector SDK only
 uv add -e packages/rag-db-handler[pgvector]
 ```
+
+> The `faiss` and `pgvector` extras are reserved for future backends: installing them
+> pulls the SDK only, and no corresponding store implementation ships yet
+> (`QdrantVectorStore` is the only vector backend today). The `postgres` extra installs
+> `asyncpg`, which the existing `SQLDocumentStore` / `SQLKeyValueStore` accept today via
+> `url="postgresql+asyncpg://..."` — there is no Postgres-specific store beyond the
+> generic SQL adapters.
 
 ## Overview
 
@@ -187,6 +194,7 @@ class QdrantVectorStore(VectorStore):
 
 class InMemoryVectorStore(VectorStore):
     def __init__(self, vector_size: int = 384) -> None: ...  # brute-force cosine sim
+    async def count(namespace=None) -> int: ...  # async to match QdrantVectorStore
 ```
 
 `upsert` derives point ids with `UUIDv5(NAMESPACE_DNS, f"{namespace}:{chunk_id}")`;
@@ -265,6 +273,10 @@ status = await check_health({"vector": vec, "docs": docs, "kv": kv})
 
 Stores without a `health()` callable are assumed healthy; any exception during a probe
 marks that backend `False` without aborting the whole probe.
+
+Every adapter exposes `close()` (sync or async), so shutdown paths can release
+resources uniformly with `rag_core.lifecycle.aclose_component` /
+`rag_core.Closable` (see the `rag-core` README).
 
 ## Usage Guides
 
@@ -442,14 +454,16 @@ conformance.
 
 ## Dependencies
 
-`qdrant-client>=1.10`, `sqlalchemy>=2.0`, `aiosqlite>=0.20`, and `rag-core`.
+`qdrant-client>=1.10`, `sqlalchemy[asyncio]>=2.0` (the `asyncio` extra pulls in
+`greenlet`, required by the eagerly imported `sqlalchemy.ext.asyncio`),
+`aiosqlite>=0.20`, and `rag-core`.
 Optional extras declared in `pyproject.toml`:
 
 | Extra      | Packages          | Purpose                          |
 | ---------- | ----------------- | -------------------------------- |
-| `postgres` | `asyncpg>=0.29`   | PostgreSQL as the SQL backend.   |
-| `faiss`    | `faiss-cpu>=1.8`  | Local FAISS vector store.        |
-| `pgvector` | `pgvector>=0.3`   | pgvector via PostgreSQL.         |
+| `postgres` | `asyncpg>=0.29`   | PostgreSQL as the SQL backend (usable today through the generic SQL stores). |
+| `faiss`    | `faiss-cpu>=1.8`  | Reserved — no FAISS store implementation yet; pulls the SDK only. |
+| `pgvector` | `pgvector>=0.3`   | Reserved — no pgvector store implementation yet; pulls the SDK only. |
 
 ## Cross-Package Relationships
 

@@ -44,6 +44,27 @@ class TestDocuments:
         d2 = Document(source_uri="s3://a", text="two")
         assert d1.content_hash != d2.content_hash
 
+    def test_text_hash_independent_of_source_uri(self) -> None:
+        from rag_core.ids import content_hash
+
+        d1 = Document(source_uri="s3://a", text="same text")
+        d2 = Document(source_uri="s3://b", text="same text")
+        # text_hash hashes only the text, so identical text yields identical hashes
+        assert d1.text_hash != ""
+        assert d1.text_hash == d2.text_hash
+        # content_hash still covers source_uri + text, so it differs
+        assert d1.content_hash != d2.content_hash
+        assert d1.text_hash == content_hash("same text")
+
+    def test_text_hash_roundtrip_preserved(self) -> None:
+        doc = Document(source_uri="s3://a", text="persist me")
+        revived = from_json(to_json(doc), Document)
+        assert revived.text_hash == doc.text_hash
+        # an explicitly supplied text_hash is preserved, not recomputed
+        explicit = Document(source_uri="s3://a", text="other", text_hash="custom-hash")
+        revived_explicit = from_json(to_json(explicit), Document)
+        assert revived_explicit.text_hash == "custom-hash"
+
     def test_document_auto_ids(self) -> None:
         page = DocumentPage(page_number=1, text="t")
         assert page.id

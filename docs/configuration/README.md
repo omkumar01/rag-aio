@@ -58,7 +58,7 @@ hybrid RRF retrieval (`candidate_k=50`, `top_k=10`), heuristic rerank, a 2048-to
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `backend` | `Literal["mock", "fastembed"]` | `"fastembed"` | `"mock"` selects the offline wiring (mock fast-path). |
+| `backend` | `Literal["mock", "fastembed", "remote"]` | `"fastembed"` | `"mock"` selects the offline wiring (mock fast-path); `"remote"` selects an OpenAI-compatible `/embeddings` endpoint wired by the caller. |
 | `dense_model` | `str \| None` | `None` | Dense model override. |
 | `sparse_model` | `str \| None` | `None` | Learned-sparse model override. |
 | `dim` | `int` | `384` | Embedding dimension; sizes the mock in-memory store. |
@@ -169,8 +169,41 @@ temperature = 0.2
 As implemented today:
 
 - **Defaults + TOML file** — fully implemented (`RAGConfig`, `from_file`).
-- **Environment variables (`RAG_AIO_` prefix)** — specified by ADR-0006 but **not yet
-  implemented** in the loader; the only env interaction is secret *resolution*, below.
+- **Environment variables (`RAG_AIO_` prefix)** — fully implemented:
+  `env_overrides(prefix="RAG_AIO_")` (`packages/rag-aio/src/rag_aio/config.py`)
+  collects every `RAG_AIO_`-prefixed variable, and `RAGConfig.from_file` deep-merges
+  the result over the TOML data before validation, so the ADR-0006 precedence holds
+  (environment wins). Mapping rules:
+
+  - Strip the prefix, split the remainder on `__` (double underscore), and lowercase
+    each segment into a nested path: `RAG_AIO_STORAGE__DB_URL` →
+    `{"storage": {"db_url": ...}}`.
+  - Values are parsed with `json.loads`; anything that is not valid JSON is kept as a
+    raw string. So `RAG_AIO_GENERATION__TEMPERATURE=0.2` becomes the float `0.2`,
+    `RAG_AIO_GENERATION__MAX_TOKENS=512` becomes the int `512`, and
+    `RAG_AIO_STORAGE__CACHE_BACKEND=sqlite` stays the string `"sqlite"`. Quote strings
+    with JSON syntax when the value would otherwise be ambiguous.
+  - Only variables whose *top-level* segment names a `RAGConfig` field (`pipeline`,
+    `embedder`, `storage`, `generation`) are applied; unknown top-level keys are
+    dropped so `extra="forbid"` keeps failing loudly for typos instead of being
+    bypassed through the environment. Nested segments pass through untouched and are
+    still validated later by `model_validate` (a bad nested key raises).
+  - The prefix match is case-sensitive and a bare `RAG_AIO_` (empty remainder) is
+    ignored.
+  - Secrets still follow the secret-by-reference rule: never put a credential value in
+    an `RAG_AIO_` variable — point `api_key_ref` at the environment-variable *name*
+    that holds the secret, resolved at call time.
+
+  Examples (overriding a TOML file for a local stack):
+
+  ```bash
+  export RAG_AIO_STORAGE__DB_URL="postgresql+asyncpg://db.internal.example:5432/rag"
+  export RAG_AIO_GENERATION__BASE_URL="http://localhost:1234/v1"
+  export RAG_AIO_GENERATION__TEMPERATURE=0.2                  # json.loads -> float 0.2
+  export RAG_AIO_GENERATION__MAX_TOKENS=512                   # json.loads -> int 512
+  export RAG_AIO_STORAGE__CACHE_BACKEND=sqlite                # not JSON -> "sqlite"
+  export RAG_AIO_GENERATION__API_KEY_REF=LM_STUDIO_API_KEY    # secret-by-reference name
+  ```
 - **Persisted UI configuration** — the Streamlit console (`packages/rag-ui`, Config tab)
   edits every non-secret `RAGConfig` field and saves the validated config back to a TOML
   path, so the file on disk is the persistence layer.

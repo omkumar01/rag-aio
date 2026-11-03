@@ -18,6 +18,7 @@ Detection runs once and is cached in ``self._mode``.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Any, Literal
 
@@ -30,6 +31,8 @@ from .config import RerankConfig
 _RerankMode = Literal["rerank", "chat"]
 
 __all__ = ["RemoteReranker"]
+
+logger = logging.getLogger(__name__)
 
 
 class RemoteReranker:
@@ -129,6 +132,12 @@ class RemoteReranker:
             self._mode = "chat"
         else:
             raise RerankError(f"unexpected status {resp.status_code} from /rerank probe")
+        logger.info(
+            "RemoteReranker probe %s -> mode=%s (status=%s)",
+            self._base_url,
+            self._mode,
+            resp.status_code,
+        )
 
     def _make_scorer(self) -> Scorer:
         async def scorer(query: str, texts: list[str]) -> list[float]:

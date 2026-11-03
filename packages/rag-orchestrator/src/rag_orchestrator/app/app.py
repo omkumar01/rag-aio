@@ -9,25 +9,36 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
+from collections.abc import Callable
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
 from pydantic import Field  # noqa: F401  (re-exported below / reserved for models)
 from rag_core.base import RagBaseModel
 from rag_core.ids import new_id
 from rag_core.jobs import JobStatus, PipelineJob
 
+from rag_orchestrator.app.hooks import AuthContext, NamespaceResolver, RequestAuthenticator
 from rag_orchestrator.config import PipelineConfig
 from rag_orchestrator.ingestion import ingest as ingest_one
 from rag_orchestrator.orchestrator import AskResult, Orchestrator
 from rag_orchestrator.services import OrchestratorServices
 
+logger = logging.getLogger(__name__)
+
 __all__ = ["AskRequest", "IngestRequest", "create_app"]
+
+
+class _Unauthenticated(Exception):
+    """Internal signal: the authenticator rejected the request (mapped to 401)."""
 
 
 class AskRequest(RagBaseModel):
     query: str
     stream: bool = False
+    events: bool = False
+    namespace: str | None = None
     overrides: dict[str, Any] | None = None
     query_id: str | None = None
     correlation_id: str | None = None
@@ -36,11 +47,16 @@ class AskRequest(RagBaseModel):
 class IngestRequest(RagBaseModel):
     source: str
     recursive: bool = False
+    namespace: str | None = None
 
 
 def create_app(
     services: OrchestratorServices,
     pipeline_config: PipelineConfig | None = None,
+    *,
+    authenticator: RequestAuthenticator | None = None,
+    namespace_resolver: NamespaceResolver | None = None,
+    on_job_complete: Callable[[PipelineJob], Any] | None = None,
 ) -> FastAPI:
     from rag_orchestrator import __version__, pipeline_schema_version
     from rag_orchestrator.pipeline import default_registry
@@ -56,6 +72,52 @@ def create_app(
     jobs: dict[str, PipelineJob] = {}
     app.state.jobs = jobs
     app.state.registry = default_registry()
+
+    # --- auth / tenant hooks ------------------------------------------------
+
+    async def _require_auth(request: Request) -> AuthContext:
+        assert authenticator is not None  # only wired when configured
+        auth = await authenticator.authenticate(request)
+        if auth is None:
+            raise _Unauthenticated
+        request.state.auth = auth
+        return auth
+
+    def _resolve_namespace(request: Request, body_namespace: str | None) -> str | None:
+        """Resolver wins over the request body (tenant isolation is not overridable)."""
+        auth = getattr(request.state, "auth", None)
+        if (
+            authenticator is not None
+            and namespace_resolver is not None
+            and isinstance(auth, AuthContext)
+        ):
+            resolved = namespace_resolver.namespace_for(auth)
+            if resolved is not None:
+                return resolved
+        return body_namespace
+
+    async def _finish_job(job_id: str, job: PipelineJob) -> None:
+        """Record a terminal job state and fire the completion callback."""
+        app.state.jobs[job_id] = job
+        if on_job_complete is None:
+            return
+        try:
+            outcome = on_job_complete(job)
+            if inspect.isawaitable(outcome):
+                await outcome
+        except Exception:
+            logger.exception("on_job_complete callback failed for job %s", job_id)
+
+    auth_dependencies: list[Any] = []  # default path: exactly as before
+    if authenticator is not None:
+        auth_dependencies.append(Depends(_require_auth))
+
+        def _unauthenticated_handler(request: Request, exc: Exception) -> Any:
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse({"error": "unauthenticated"}, status_code=401)
+
+        app.add_exception_handler(_Unauthenticated, _unauthenticated_handler)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -137,20 +199,35 @@ def create_app(
             "pipelines": [p.to_dict() for p in registry.list()],
         }
 
-    @app.post("/v1/ask")
-    async def ask_endpoint(body: AskRequest) -> Any:
+    @app.post("/v1/ask", dependencies=auth_dependencies)
+    async def ask_endpoint(request: Request, body: AskRequest) -> Any:
+        ns = _resolve_namespace(request, body.namespace)
         if body.stream:
 
             async def events() -> Any:
-                stream = await orchestrator.ask(
+                if body.events:
+                    # Typed SSE: one event frame per orchestrator event, no [DONE].
+                    event_stream = await orchestrator.stream_events(
+                        body.query,
+                        overrides=body.overrides,
+                        query_id=body.query_id,
+                        correlation_id=body.correlation_id,
+                        namespace=ns,
+                    )
+                    async for event in event_stream:
+                        if event.type == "delta":
+                            yield f"event: delta\ndata: {event.model_dump_json()}\n\n"
+                        else:
+                            yield f"event: done\ndata: {event.model_dump_json()}\n\n"
+                    return
+                delta_stream = await orchestrator.ask_stream(
                     body.query,
-                    stream=True,
                     overrides=body.overrides,
                     query_id=body.query_id,
                     correlation_id=body.correlation_id,
+                    namespace=ns,
                 )
-                assert not isinstance(stream, AskResult)  # stream=True path
-                async for delta in stream:
+                async for delta in delta_stream:
                     yield f"data: {json.dumps(delta)}\n\n"
                 yield "data: [DONE]\n\n"
 
@@ -163,14 +240,16 @@ def create_app(
             overrides=body.overrides,
             query_id=body.query_id,
             correlation_id=body.correlation_id,
+            namespace=ns,
         )
         assert isinstance(result, AskResult)
         from fastapi.responses import JSONResponse
 
         return JSONResponse(result.model_dump(mode="json"))
 
-    @app.post("/v1/ingest")
-    async def ingest_endpoint(body: IngestRequest) -> Any:
+    @app.post("/v1/ingest", dependencies=auth_dependencies)
+    async def ingest_endpoint(request: Request, body: IngestRequest) -> Any:
+        ns = _resolve_namespace(request, body.namespace)
         job_id = new_id()
         try:
             document = await ingest_one(services, body.source, config=orchestrator.config)
@@ -182,7 +261,7 @@ def create_app(
                 error=str(exc),
                 error_code=getattr(exc, "code", "ingestion_error"),
             )
-            app.state.jobs[job_id] = job
+            await _finish_job(job_id, job)
             from fastapi import HTTPException
             from fastapi import status as _status
 
@@ -190,6 +269,7 @@ def create_app(
                 status_code=_status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={"job_id": job_id, "error": str(exc)},
             ) from exc
+        document.namespace = ns
         job = PipelineJob(
             kind="ingest",
             status=JobStatus.completed,
@@ -202,12 +282,12 @@ def create_app(
                 "pages": len(document.pages),
             },
         )
-        app.state.jobs[job_id] = job
+        await _finish_job(job_id, job)
         from fastapi.responses import JSONResponse
 
         return JSONResponse(document.model_dump(mode="json"))
 
-    @app.get("/v1/jobs/{job_id}")
+    @app.get("/v1/jobs/{job_id}", dependencies=auth_dependencies)
     async def job_status(job_id: str) -> PipelineJob:
         job = jobs.get(job_id)
         if job is None:

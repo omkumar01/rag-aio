@@ -101,10 +101,10 @@ async def test_delete(store: InMemoryVectorStore) -> None:
 @pytest.mark.unit
 async def test_count_and_health(store: InMemoryVectorStore) -> None:
     assert await store.health() is True
-    assert store.count("ns") == 0
+    assert await store.count("ns") == 0
     await store.upsert("a", _v(1, 0, 0, 0), {"document_id": "d1", "text": "x"}, "ns")
-    assert store.count("ns") == 1
-    assert store.count("other") == 0
+    assert await store.count("ns") == 1
+    assert await store.count("other") == 0
 
 
 @pytest.mark.unit

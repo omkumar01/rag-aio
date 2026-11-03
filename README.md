@@ -52,8 +52,11 @@ evaluation, bulk ingestion, a benchmark suite, and a Streamlit management consol
 ## Installation
 
 Everything ships in a single PyPI project: one `rag-aio` wheel contains all 18
-packages' code. The base install pulls only light, pure-Python dependencies;
-heavy backends are opt-in via extras:
+packages' code. The local RAG stack is included by default — `qdrant-client` and
+`fastembed` are hard dependencies of the `rag-aio-db-handler` and `rag-aio-embedder`
+member packages, so the wheel installs them out of the box (`qdrant`/`fastembed`
+extras exist on the wheel for explicit installs). Everything else stays light:
+heavy or alternative backends are opt-in via extras:
 
 ```bash
 pip install rag-aio                     # all packages, mock/light backends
@@ -64,8 +67,12 @@ pip install "rag-aio[streamlit]"        # management console UI
 
 Available extras: `qdrant`, `fastembed`, `sentence-transformers`, `faiss`,
 `postgres`, `pgvector`, `redis`, `docling`, `msg`, `rtf`, `pydantic-ai`,
-`streamlit`, and the `all` catch-all. Without them, the fully-offline mock
-profile still runs end to end — the quickstart below needs nothing extra.
+`streamlit`, and the `all` catch-all. Note: `postgres`, `pgvector`, and `faiss`
+are currently **reserved** — installing the extra pulls only the backend SDK; no
+dedicated store implementations ship yet (the SQL stores already accept any async
+SQLAlchemy URL, so PostgreSQL works through them today; Qdrant remains the vector
+backend). Without any extra, the fully-offline mock profile still runs end to end —
+the quickstart below needs nothing extra.
 
 For development, clone and sync the uv workspace instead:
 
@@ -167,7 +174,7 @@ Everything is cross-linked from here; each package README links back to this fil
 | [docs/modules/](docs/modules/README.md) | Per-package index: layer, responsibility, dependencies, extension points |
 | [docs/api/](docs/api/README.md) | Python facade, CLI, and HTTP API reference (endpoints, SSE, versioning) |
 | [docs/configuration/](docs/configuration/README.md) | Full `RAGConfig` reference: fields, defaults, TOML examples, secrets, precedence |
-| [docs/deployment/](docs/deployment/README.md) | Topologies (embedded / workstation / scaled services) and run commands |
+| [docs/deployment/](docs/deployment/README.md) | Topologies (embedded / workstation / scaled services), authentication & multi-tenancy, SSE streaming and job callbacks, shutdown ordering, sizing on process RSS |
 | [docs/testing/](docs/testing/README.md) | Test strategy: markers, fixtures/fakes, CI behavior, e2e auto-skip |
 | [docs/performance/](docs/performance/README.md) | Benchmark methodology and measured results |
 | [docs/development/](docs/development/README.md) | Setup, quality gates, conventions, ADR index, security workflow |

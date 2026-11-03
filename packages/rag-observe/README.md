@@ -110,6 +110,7 @@ src/rag_observe/
                        RedactingFilter, redact, REDACTED, truncate_for_log,
                        set/get_correlation_id
   observer.py          ObservabilityHub (Observer protocol implementation)
+  sse.py               sse_stream() SSE bridge over ObservabilityHub
 ```
 
 ## Public API
@@ -323,6 +324,47 @@ the exception is suppressed. Other listeners are unaffected. This holds for
 both `record` (best-effort dispatch) and `emit` (gathered with
 `return_exceptions=True`).
 
+### SSE progress bridge (`sse.py`)
+
+#### `sse_stream(hub, *, event_filter=None)`
+
+A framework-free async generator that bridges `ObservabilityHub` events to
+[Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
+It subscribes an `asyncio.Queue`-based listener (via `put_nowait`, so it never blocks
+the hub's dispatch — safe under both `record` and `emit`) and yields one frame per
+event:
+
+```
+data: {"event": "<event name>", "attributes": <event attributes or null>}\n\n
+```
+
+An optional `event_filter(name, attributes) -> bool` predicate skips events for which
+it returns `False`. The stream runs until the consumer closes it (breaking out of the
+`async for`, client disconnect, or explicit `aclose()`); the hub listener is always
+unsubscribed, so closing the stream never leaks a listener. No web-framework imports
+are involved — wrap it in your framework's streaming response.
+
+```python
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+
+from rag_observe import ObservabilityHub, sse_stream
+
+app = FastAPI()
+hub = ObservabilityHub()
+
+
+@app.get("/progress/{query_id}")
+async def progress(query_id: str) -> StreamingResponse:
+    async def frames():
+        async for frame in sse_stream(
+            hub, event_filter=lambda name, attrs: attrs.get("query_id") == query_id
+        ):
+            yield frame
+
+    return StreamingResponse(frames(), media_type="text/event-stream")
+```
+
 ## Usage Guides
 
 ### Beginner: instrumenting a single stage
@@ -476,6 +518,7 @@ Every span/metric call must degrade to a no-op without raising:
 | `tests/test_instrumentation.py` | `observe` exception re-raise, attribute coercion, async body support, `timed` on exception, `StageTimer` lifecycle, metric recording without SDK |
 | `tests/test_logging.py` | JSON format, correlation ID propagation, `RedactingFilter` key matching, `redact` prefix preservation, `truncate_for_log`, idempotent `setup_logging` |
 | `tests/test_observer.py` | `Observer` protocol conformance, zero-listener safety, async listener dispatch, failing listener isolation, subscribe/unsubscribe, deduplication |
+| `tests/test_sse.py` | `sse_stream` frame schema, `record`/`emit` dispatch, event filtering, unsubscribe on generator close |
 
 ## Dependencies
 
